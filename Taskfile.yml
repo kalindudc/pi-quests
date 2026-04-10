@@ -1,0 +1,125 @@
+version: '3'
+
+tasks:
+  up:
+    desc: "Set up development environment (install deps, verify toolchain)"
+    cmds:
+      - |
+        echo "==> Checking Node.js..."
+        if ! command -v node &>/dev/null; then
+          echo "Error: node is required. Install via fnm: https://github.com/Schniz/fnm"
+          exit 1
+        fi
+        echo "  node $(node --version)"
+      - |
+        echo "==> Checking pi..."
+        if ! command -v pi &>/dev/null; then
+          echo "Error: pi is required. Install with: npm install -g @mariozechner/pi-coding-agent"
+          exit 1
+        fi
+        echo "  pi $(pi --version 2>/dev/null || echo '(version unavailable)')"
+      - |
+        echo "==> Installing dependencies..."
+        pnpm install
+        echo "  Dependencies installed"
+      - |
+        echo "==> Configuring git hooks..."
+        git config core.hooksPath .githooks
+        echo "  Git hooks path set to .githooks"
+      - |
+        mkdir -p tmp/
+      - |
+        rm -rf tmp/sessions
+        ln -s $HOME/.pi/agent/sessions tmp/sessions
+        echo " "
+        echo "session files can be found in ./tmp/sessions/"
+      - |
+        rm -rf tmp/logs
+        ln -s /tmp/logs/pi-quests tmp/logs
+        echo ""
+        echo "debug logs can be found in ./tmp/logs/"
+      - |
+        echo ""
+        echo "Development environment ready."
+        echo ""
+        echo "  task test        run unit tests"
+        echo "  task typecheck   TypeScript type check"
+        echo "  task style       lint, format, and type check"
+        echo "  task dev         load extension into pi"
+
+  cleanup:
+    desc: "Clean up all logs and tmp test files"
+    cmds:
+      - |
+        rm -rf /tmp/logs/pi-quests/*.log
+        rm -rf $HOME/.pi/agent/sessions/*tmp-pi-quests-test*
+        rm -rf /tmp/logs/pi-quests/*.log
+        touch /tmp/logs/pi-quests/debug.log
+
+  dev:
+    desc: "Load extension into pi. Open 'task logs' in a second terminal to see debug output."
+    env:
+      PI_QUESTS_DEBUG: "1"
+    cmds:
+      - mkdir -p /tmp/logs/pi-quests/
+      # Rotate: keep last session as .prev so nothing is lost
+      - |
+        if [ -s /tmp/logs/pi-quests/debug.log ]; then
+          cp /tmp/logs/pi-quests/debug.log /tmp/logs/pi-quests/debug.prev.log
+        fi
+      - echo "" > /tmp/logs/pi-quests/debug.log
+      - |
+        echo ""
+        echo "  pi-quests dev session starting"
+        echo "  Open a second terminal and run: task logs"
+        echo "  Log: ./tmp/logs/pi-quests/debug.log"
+        echo ""
+      - pi
+
+  typecheck:
+    desc: "Run TypeScript type checker"
+    cmds:
+      - npx tsc --noEmit
+
+  style:
+    desc: "Run linter, auto-format code, and type check"
+    cmds:
+      - |
+        echo "==> Running Biome linter and formatter..."
+        npx @biomejs/biome check --write --unsafe --no-errors-on-unmatched --error-on-warnings ./src ./test
+        biome_exit=$?
+
+        echo ""
+        echo "==> Running TypeScript type checker..."
+        npx tsc --noEmit
+        tsc_exit=$?
+
+        echo ""
+        if [ $biome_exit -ne 0 ] || [ $tsc_exit -ne 0 ]; then
+          echo "Style check failed"
+          exit 1
+        else
+          echo "Style check passed"
+        fi
+
+  test:
+    desc: "Run unit tests"
+    vars:
+      JSON_FLAG: '{{.json | default "false"}}'
+    cmds:
+      - |
+        if [ "{{.JSON_FLAG}}" = "true" ]; then
+          npx vitest run --reporter=json
+        else
+          npx vitest run
+        fi
+    silent: true
+
+  logs:
+    desc: "Tail debug log in real time (run in a second terminal alongside 'task dev')"
+    cmds:
+      - rm -rf /tmp/logs/pi-quests
+      - mkdir -p /tmp/logs/pi-quests && touch /tmp/logs/pi-quests/debug.log
+      - ln -s /tmp/logs/pi-quests tmp/logs
+      - echo "Tailing ./tmp/logs/debug.log  (Ctrl+C to stop)"
+      - tail -f -n 100 ./tmp/logs/debug.log

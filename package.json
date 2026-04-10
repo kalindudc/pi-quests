@@ -1,0 +1,54 @@
+{
+  "name": "pi-quests",
+  "version": "0.0.0",
+  "description": "A quest-log for your pi. Keep your agent on track, one quest at a time.",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-extension",
+    "quests",
+    "snapshot",
+    "rollback",
+    "todo"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalindudc/pi-quests.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE.md"
+  ],
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
+    "@mariozechner/pi-coding-agent": "^0.63.2",
+    "@mariozechner/pi-tui": "^0.63.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "style": "biome check ./src ./test",
+    "style:fix": "biome check --write --unsafe --no-errors-on-unmatched ./src ./test",
+    "format": "biome format --write --no-errors-on-unmatched ./src ./test",
+    "prepublishOnly": "npm run typecheck && npm test"
+  }
+}
