@@ -126,7 +126,17 @@ export function registerQuestTool(pi: ExtensionAPI, questLog: QuestLog): void {
   pi.registerTool({
     name: "quest",
     label: "Quest",
-    description: "Manage the session quest log",
+    description:
+      "Manage the session quest log. Use this VERY frequently to track tasks, plans, and progress throughout the conversation.",
+    promptSnippet: "Add, list, toggle, update, delete, clear, or revert quest items",
+    promptGuidelines: [
+      "Before reading files, running commands, or making edits, ensure the current work is tracked as specific, actionable quests.",
+      "Do not create a single vague quest for broad requests. Break them into concrete, independent steps.",
+      "When the user gives a plan or a list of tasks, add them as quests immediately.",
+      "It is critical that you toggle quests to done as soon as you complete them. Do NOT batch completions.",
+      "Before delegating to a minion, add a quest for the delegated task.",
+      "If you are unsure what to do next, use the list action to check active quests.",
+    ],
     parameters: QuestParams,
     execute: (toolCallId, params, _signal, _onUpdate, _ctx) =>
       questToolExecute(questLog, toolCallId, params),

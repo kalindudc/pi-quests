@@ -4,7 +4,7 @@
 
 pi-quests is a [pi](https://github.com/mariozechner/pi-coding-agent) extension that adds a session-scoped quest log. It exposes one LLM-callable tool (`quest`) and one command namespace (`/quests`) that operate on a shared in-memory `QuestLog`.
 
-The extension loads via `pi -e ./src/index.ts`. On load it registers the tool, command, message renderer, and session event hooks.
+The extension loads via `pi install npm:pi-quests` (or `pi -e ./src/index.ts` for local development). On load it registers the tool, command, message renderer, session event hooks, and system prompt injection.
 
 ## Module map
 
@@ -16,6 +16,8 @@ The extension loads via `pi -e ./src/index.ts`. On load it registers the tool, c
 | `src/commands/quests.ts` | `/quests` command dispatcher and argument parser |
 | `src/renderers/tools.ts` | TUI renderers for tool calls and results |
 | `src/renderers/commands.ts` | `QuestListWidget` — interactive paginated quest list |
+| `src/renderers/tools.ts` | TUI renderers for `quest` tool call rows |
+| `src/renderers/changelog.ts` | `quest-changelog` message renderer |
 | `src/renderers/changelog.ts` | Message renderer for `quest-changelog` messages |
 | `src/logger.ts` | Namespaced debug logging |
 | `src/version.ts` | Version and changelog path constants |
@@ -36,6 +38,12 @@ The extension loads via `pi -e ./src/index.ts`. On load it registers the tool, c
 2. `parseQuestArgs` tokenizes and validates input
 3. Handler mutates `QuestLog` and notifies via `ctx.ui.notify`
 4. `list` opens `QuestListWidget` for interactive browsing
+
+### Prompt injection
+
+On `before_agent_start`, the extension prepends a high-salience `# Quest Management` gate to the system prompt (exploiting primacy bias), then appends a reminder block with active quests (exploiting recency). This creates an instruction sandwich that nudges the agent to track work as specific, actionable quests before any file reads or edits.
+
+The `quest` tool registration also supplies `promptSnippet` and `promptGuidelines`, which the framework injects into the default system prompt when the tool is active.
 
 ### Session reconstruction
 

@@ -9,7 +9,8 @@
   - `/quests list` command and tool
   - `/quests done <id>` command and tool
   - `/quests clear` command and tool
-- [ ] agent prompt guidelines for quest management
+- [x] agent prompt guidelines for quest management
+- [ ] dynamic `<system-reminder>` nudges via `context` event when the quest tool hasn't been used recently
 - [ ] lightweight snapshot capture at quest creation
 - [ ] `/quests rollback <id>` command and tool
 - [ ] snapshot restoration logic (file state + conversation context)

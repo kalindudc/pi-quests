@@ -20,7 +20,7 @@ pi-quests gives your agent a persistent quest log — a living TODO list for the
 ## Install
 
 ```bash
-pi install npm:pi-minions
+pi install npm:pi-quests
 ```
 
 ## Quick start
@@ -45,7 +45,7 @@ Available /quests subcommands:
 
 | Doc | Description |
 |-----|-------------|
-| [Patterns](docs/patterns.md) | "How do I...?" recipes for common workflows |
+| [Pattern](docs/pattern.md) | "How do I...?" recipes for common workflows |
 | [Quests](docs/quests.md) | What are quests? |
 | [Reference](docs/reference.md) | Complete tool and command schemas, types |
 | [Architecture](docs/architecture.md) | Module map, data flow diagrams, design decisions |

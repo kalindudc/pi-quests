@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { QuestLog } from "../../src/quests.js";
-import { questToolExecute } from "../../src/tools/quest.js";
+import { questToolExecute, registerQuestTool } from "../../src/tools/quest.js";
 
 function getText(content: { type: "text"; text: string } | { type: "image" }): string | undefined {
   return content.type === "text" ? content.text : undefined;
@@ -75,5 +75,22 @@ describe("quest tool", () => {
     log.add("A");
     const result = await questToolExecute(log, "tc1", { action: "revert" });
     expect(getText(result.content[0]!)).toContain("Reverted add quest #1");
+  });
+
+  it("registers quest tool with promptSnippet and promptGuidelines", () => {
+    const pi = {
+      registerTool: vi.fn(),
+    };
+    const log = createLog();
+    registerQuestTool(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI, log);
+    expect(pi.registerTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "quest",
+        promptSnippet: expect.any(String),
+        promptGuidelines: expect.arrayContaining([
+          expect.stringContaining("Before reading files, running commands, or making edits"),
+        ]),
+      }),
+    );
   });
 });

@@ -22,6 +22,14 @@ pi-quests is a pi-coding-agent extension that adds a session-scoped quest log wi
 | `npm run style` | Lint and format check (biome) |
 | `npm run style:fix` | Auto-fix biome issues |
 
+## Writing tests
+
+- One test file per source file under `src/`; tests live in `test/` mirroring the `src/` structure.
+- Behavioural tests for a module belong in its corresponding test file. Do not create separate scenario-only test files.
+- Prefer directly importing and exercising the unit under test rather than going through higher-level indirection.
+- Mock external dependencies narrowly and keep assertions focused on observable outcomes.
+- Run the full test suite after behaviour changes; run targeted tests for fast feedback during iteration.
+
 ## Definition of done
 
 A change is complete when ALL of the following pass:
