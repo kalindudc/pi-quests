@@ -13,31 +13,42 @@ Long agent sessions drift. Goals get lost in tool calls, side quests multiply, a
 pi-quests gives your agent a persistent quest log — a living TODO list for the current session. Each quest is a checkpoint the agent can create, complete, and optionally roll back to if things go sideways.
 
 - **Stay focused** — the quest log keeps the original goal visible no matter how deep the rabbit hole goes
-- **Checkpoint progress** — mark milestones as quests and capture lightweight session snapshots
-- **Rollback safety** — revert to a previous quest snapshot when exploration goes off track
+- **Checkpoint progress** — mark milestones as quests and capture lightweight session snapshots (WIP)
+- **Rollback safety** — revert to a previous quest snapshot when exploration goes off track (WIP)
 - **Session-scoped** — quests live with the session, vanish when you start fresh
 
 ## Install
 
-TBD
+```bash
+pi install npm:pi-minions
+```
 
 ## Quick start
 
-**See the extension version:**
-```bash
-/quests version
 ```
+/quests help
 
-**View the changelog:**
-```bash
-/quests changelog
+Available /quests subcommands:
+  add <description>  - Add a new quest
+  list               - List all quests
+  toggle <id>        - Toggle quest completion
+  delete <id>        - Delete a quest
+  update <id> <desc> - Update a quest description
+  revert             - Revert the last quest change
+  clear              - Clear all quests
+  version            - Show version
+  changelog          - Show changelog
+  h, help            - Show this help message
 ```
 
 ## Documentation
 
 | Doc | Description |
 |-----|-------------|
-| [Roadmap](docs/roadmap.md) | Feature backlog and progress tracker |
+| [Patterns](docs/patterns.md) | "How do I...?" recipes for common workflows |
+| [Quests](docs/quests.md) | What are quests? |
+| [Reference](docs/reference.md) | Complete tool and command schemas, types |
+| [Architecture](docs/architecture.md) | Module map, data flow diagrams, design decisions |
 | [Changelog](CHANGELOG.md) | Version history |
 
 ## License
