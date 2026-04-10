@@ -19,9 +19,7 @@ pi-quests gives your agent a persistent quest log — a living TODO list for the
 
 ## Install
 
-```bash
-pi install npm:pi-quests
-```
+TBD
 
 ## Quick start
 
@@ -33,19 +31,6 @@ pi install npm:pi-quests
 **View the changelog:**
 ```bash
 /quests changelog
-```
-
-## Configuration
-
-```json
-// .pi/settings.json
-{
-  "pi-quests": {
-    "display": {
-      "observabilityLines": 10
-    }
-  }
-}
 ```
 
 ## Documentation
