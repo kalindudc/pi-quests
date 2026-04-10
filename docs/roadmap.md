@@ -4,7 +4,7 @@
 - [x] initial boilerplate with `/quests version` and `/quests changelog` commands
 - [x] TypeScript + Biome + Vitest toolchain
 - [x] Taskfile dev workflow, CI, and release automation
-- [ ] quest list data model and in-memory session storage
+- [x] quest list data model and in-memory session storage
   - `/quests add <description>` command and tool
   - `/quests list` command and tool
   - `/quests done <id>` command and tool
@@ -15,8 +15,8 @@
 - [ ] snapshot restoration logic (file state + conversation context)
 
 ### observability
+- [x] progress indicator for active quest (e.g., 3 of 7 complete)
 - [ ] quest status widget in footer or status line
-- [ ] progress indicator for active quest (e.g., 3 of 7 complete)
 - [ ] quest history view with timestamps
 - [ ] debug logging for snapshot/rollback operations
 

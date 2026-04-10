@@ -1,6 +1,8 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createQuestsHandler } from "./commands/quests.js";
-import { questChangelogRenderer } from "./renderers/quest-changelog.js";
+import { QuestLog } from "./quests.js";
+import { questChangelogRenderer } from "./renderers/changelog.js";
+import { registerQuestTool } from "./tools/quest.js";
 
 /**
  * pi-quests
@@ -13,13 +15,19 @@ import { questChangelogRenderer } from "./renderers/quest-changelog.js";
  * - Provide rollback support to restore a previous snapshot.
  */
 export default function (pi: ExtensionAPI): void {
+  const questLog = new QuestLog();
+
+  pi.on("session_start", async (_event, ctx) => questLog.reconstructFromSession(ctx));
+  pi.on("session_tree", async (_event, ctx) => questLog.reconstructFromSession(ctx));
+
+  registerQuestTool(pi, questLog);
+
   // Register custom message renderers
   pi.registerMessageRenderer("quest-changelog", questChangelogRenderer);
 
   // Register the top-level /quests command dispatcher.
-  // Subcommands: version, changelog (more to come: add, list, done, rollback, clear)
   pi.registerCommand("quests", {
-    description: "Quest commands: /quests version, /quests changelog",
-    handler: createQuestsHandler(pi),
+    description: "Quest commands: /quests [help] to see usage",
+    handler: createQuestsHandler(pi, questLog),
   });
 }
