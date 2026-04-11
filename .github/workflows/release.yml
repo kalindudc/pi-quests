@@ -18,6 +18,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: read
+    outputs:
+      skip: ${{ steps.check-tag.outputs.skip }}
+      tag: ${{ steps.check-tag.outputs.tag }}
 
     steps:
       - name: Checkout code
