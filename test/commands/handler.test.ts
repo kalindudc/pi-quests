@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { createQuestsHandler, parseQuestArgs } from "../../src/commands/quests.js";
-import { QuestLog } from "../../src/quests.js";
-import { VERSION } from "../../src/version.js";
+import { createQuestsHandler } from "../../src/commands/handler.js";
+import { QuestLog } from "../../src/quest/dataplane.js";
+import { getVersion } from "../../src/version.js";
 
 vi.mock("../../src/logger.js", () => ({ logger: { debug: vi.fn() } }));
 
-describe("quests command handler", () => {
+describe("createQuestsHandler", () => {
   function createMockPi() {
     return {
       sendMessage: vi.fn(),
@@ -30,7 +30,7 @@ describe("quests command handler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("version", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith(`pi-quests v${VERSION}`, "info");
+    expect(ctx.ui.notify).toHaveBeenCalledWith(`pi-quests v${getVersion()}`, "info");
   });
 
   it("sends a quest-changelog message for 'changelog' subcommand", async () => {
@@ -70,7 +70,7 @@ describe("quests command handler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add Test quest", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Added quest #1", "info");
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Added quest #1: Test quest", "info");
   });
 
   it("lists quests with custom UI", async () => {
@@ -167,88 +167,5 @@ describe("quests command handler", () => {
       expect.stringContaining("Available /quests subcommands"),
       "info",
     );
-  });
-});
-
-describe("parseQuestArgs", () => {
-  it("parses version", () => {
-    expect(parseQuestArgs("version")).toEqual({ action: "version" });
-  });
-
-  it("parses changelog", () => {
-    expect(parseQuestArgs("changelog")).toEqual({ action: "changelog" });
-  });
-
-  it("parses help", () => {
-    expect(parseQuestArgs("help")).toEqual({ action: "help" });
-    expect(parseQuestArgs("h")).toEqual({ action: "help" });
-  });
-
-  it("parses list", () => {
-    expect(parseQuestArgs("list")).toEqual({ action: "list" });
-  });
-
-  it("parses clear", () => {
-    expect(parseQuestArgs("clear")).toEqual({ action: "clear" });
-  });
-
-  it("parses add with description", () => {
-    expect(parseQuestArgs("add Buy milk")).toEqual({ action: "add", description: "Buy milk" });
-  });
-
-  it("returns error for add without description", () => {
-    expect(parseQuestArgs("add")).toEqual({ error: "Usage: /quests add <description>" });
-  });
-
-  it("parses toggle with id", () => {
-    expect(parseQuestArgs("toggle 3")).toEqual({ action: "toggle", id: 3 });
-  });
-
-  it("returns error for toggle without id", () => {
-    expect(parseQuestArgs("toggle")).toEqual({ error: "Usage: /quests toggle <id>" });
-  });
-
-  it("returns error for toggle with invalid id", () => {
-    expect(parseQuestArgs("toggle abc")).toEqual({ error: "Usage: /quests toggle <id>" });
-  });
-
-  it("parses revert", () => {
-    expect(parseQuestArgs("revert")).toEqual({ action: "revert" });
-  });
-
-  it("parses update with id and description", () => {
-    expect(parseQuestArgs("update 3 New desc")).toEqual({
-      action: "update",
-      id: 3,
-      description: "New desc",
-    });
-  });
-
-  it("returns error for update without id", () => {
-    expect(parseQuestArgs("update")).toEqual({ error: "Usage: /quests update <id> <description>" });
-  });
-
-  it("returns error for update without description", () => {
-    expect(parseQuestArgs("update 1")).toEqual({
-      error: "Usage: /quests update <id> <description>",
-    });
-  });
-
-  it("parses delete with id", () => {
-    expect(parseQuestArgs("delete 3")).toEqual({ action: "delete", id: 3 });
-  });
-
-  it("returns error for delete without id", () => {
-    expect(parseQuestArgs("delete")).toEqual({ error: "Usage: /quests delete <id>" });
-  });
-
-  it("returns error for unknown subcommand", () => {
-    expect(parseQuestArgs("unknown")).toEqual({
-      error: "Unknown subcommand: unknown. Use /quests help to see available commands.",
-    });
-  });
-
-  it("treats empty args as list", () => {
-    expect(parseQuestArgs("")).toEqual({ action: "list" });
   });
 });

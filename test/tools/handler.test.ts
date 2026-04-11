@@ -1,19 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
-import { QuestLog } from "../../src/quests.js";
-import { questToolExecute, registerQuestTool } from "../../src/tools/quest.js";
+import { QuestLog } from "../../src/quest/dataplane.js";
+import { QUEST_ACTIONS } from "../../src/quest/types.js";
+import { questToolExecute, registerQuestTool } from "../../src/tools/handler.js";
 
 function getText(content: { type: "text"; text: string } | { type: "image" }): string | undefined {
   return content.type === "text" ? content.text : undefined;
 }
 
-describe("quest tool", () => {
+describe("questToolExecute", () => {
   function createLog() {
     return new QuestLog();
   }
 
   it("adds a quest", async () => {
     const log = createLog();
-    const result = await questToolExecute(log, "tc1", { action: "add", description: "Test" });
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.add,
+      description: "Test",
+    });
     expect(result.content[0]).toEqual(
       expect.objectContaining({ text: expect.stringContaining("Added quest #1") }),
     );
@@ -22,7 +26,7 @@ describe("quest tool", () => {
   it("adds multiple quests in batch", async () => {
     const log = createLog();
     const result = await questToolExecute(log, "tc1", {
-      action: "add",
+      action: QUEST_ACTIONS.add,
       descriptions: ["A", "B"],
     });
     expect(getText(result.content[0]!)).toContain("Added 2 quests");
@@ -32,21 +36,21 @@ describe("quest tool", () => {
   it("lists quests", async () => {
     const log = createLog();
     log.add("A");
-    const result = await questToolExecute(log, "tc1", { action: "list" });
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.list });
     expect(getText(result.content[0]!)).toContain("A");
   });
 
   it("toggles a quest", async () => {
     const log = createLog();
     log.add("A");
-    const result = await questToolExecute(log, "tc1", { action: "toggle", id: 1 });
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.toggle, id: 1 });
     expect(getText(result.content[0]!)).toContain("Quest #1 done");
   });
 
   it("clears quests", async () => {
     const log = createLog();
     log.add("A");
-    const result = await questToolExecute(log, "tc1", { action: "clear" });
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.clear });
     expect(getText(result.content[0]!)).toContain("Cleared 1");
   });
 
@@ -54,7 +58,7 @@ describe("quest tool", () => {
     const log = createLog();
     log.add("Old");
     const result = await questToolExecute(log, "tc1", {
-      action: "update",
+      action: QUEST_ACTIONS.update,
       id: 1,
       description: "New",
     });
@@ -65,7 +69,7 @@ describe("quest tool", () => {
   it("deletes a quest", async () => {
     const log = createLog();
     log.add("Old");
-    const result = await questToolExecute(log, "tc1", { action: "delete", id: 1 });
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: 1 });
     expect(getText(result.content[0]!)).toContain("Deleted quest #1");
     expect(log.getAll()).toHaveLength(0);
   });
@@ -73,15 +77,17 @@ describe("quest tool", () => {
   it("reverts last action", async () => {
     const log = createLog();
     log.add("A");
-    const result = await questToolExecute(log, "tc1", { action: "revert" });
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.revert });
     expect(getText(result.content[0]!)).toContain("Reverted add quest #1");
   });
+});
 
+describe("registerQuestTool", () => {
   it("registers quest tool with promptSnippet and promptGuidelines", () => {
     const pi = {
       registerTool: vi.fn(),
     };
-    const log = createLog();
+    const log = new QuestLog();
     registerQuestTool(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI, log);
     expect(pi.registerTool).toHaveBeenCalledWith(
       expect.objectContaining({

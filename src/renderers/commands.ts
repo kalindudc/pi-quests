@@ -1,7 +1,7 @@
 import type { Theme } from "@mariozechner/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { logger } from "../logger.js";
-import type { Quest } from "../quests.js";
+import type { Quest } from "../quest/types.js";
 
 export class QuestListWidget {
   private cachedWidth?: number;
@@ -24,10 +24,12 @@ export class QuestListWidget {
       this.onClose();
       return;
     }
+
     if (matchesKey(data, Key.tab)) {
       this.nextPage();
       return;
     }
+
     if (matchesKey(data, Key.shift(Key.tab))) {
       this.prevPage();
       return;
@@ -45,6 +47,7 @@ export class QuestListWidget {
       to: next,
       totalPages: this.totalPages,
     });
+
     this.page = next;
     this.invalidate();
   }
@@ -56,6 +59,7 @@ export class QuestListWidget {
       to: prev,
       totalPages: this.totalPages,
     });
+
     this.page = prev;
     this.invalidate();
   }
@@ -100,6 +104,7 @@ export class QuestListWidget {
       const filled = Math.round((doneCount / total) * barWidth);
       const empty = barWidth - filled;
       const bar = th.fg("success", "█".repeat(filled)) + th.fg("dim", "░".repeat(empty));
+
       lines.push(truncateToWidth(`  ${bar}  ${th.fg("muted", `${doneCount}/${total}`)}`, width));
       lines.push("");
 
@@ -112,12 +117,14 @@ export class QuestListWidget {
           ? th.fg("dim", th.strikethrough(q.description))
           : th.fg("text", q.description);
         const row = `${marker}${idStr} ${desc}`;
+
         lines.push(truncateToWidth(row, width));
       }
 
       if (this.totalPages > 1) {
-        lines.push("");
         const pageInfo = `  Page ${this.page + 1}/${this.totalPages}  ${th.fg("dim", "· Tab/Shift+Tab to navigate")}`;
+
+        lines.push("");
         lines.push(truncateToWidth(pageInfo, width));
       }
     }

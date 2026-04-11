@@ -1,8 +1,8 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { createQuestsHandler } from "./commands/quests.js";
-import { QuestLog } from "./quests.js";
+import { createQuestsHandler } from "./commands/handler.js";
+import { QuestLog } from "./quest/dataplane.js";
 import { questChangelogRenderer } from "./renderers/changelog.js";
-import { registerQuestTool } from "./tools/quest.js";
+import { registerQuestTool } from "./tools/handler.js";
 
 /**
  * pi-quests
@@ -32,8 +32,10 @@ export default function (pi: ExtensionAPI): void {
       const list = quests
         .map((q) => `#${q.id} [${q.done ? "x" : " "}] ${q.description}`)
         .join("\n");
+
       reminder += `\n\nActive quests (${remaining}/${quests.length}):\n${list}`;
     }
+
     return { systemPrompt: `${gate}${event.systemPrompt}\n\n${reminder}` };
   });
 
