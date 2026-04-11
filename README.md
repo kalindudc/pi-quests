@@ -10,6 +10,8 @@ A quest-log for your [pi](https://github.com/badlogic/pi-mono/tree/main/packages
 
 Long agent sessions drift. Goals get lost in tool calls, side quests multiply, and the original task is forgotten under a pile of yak hair.
 
+![Quests log in action](docs/assets/quests_log.png)
+
 pi-quests gives your agent a persistent quest log — a living TODO list for the current session. Each quest is a checkpoint the agent can create, complete, and optionally roll back to if things go sideways.
 
 - **Stay focused** — the quest log keeps the original goal visible no matter how deep the rabbit hole goes
@@ -40,6 +42,10 @@ Available /quests subcommands:
   changelog          - Show changelog
   h, help            - Show this help message
 ```
+
+![Quests toggle](docs/assets/quests_toggle.png)
+![Quests view](docs/assets/quests_view.png)
+
 
 ## Documentation
 
