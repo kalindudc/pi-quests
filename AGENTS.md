@@ -27,6 +27,10 @@ pi-quests is a pi-coding-agent extension that adds a session-scoped quest log wi
 | `npm run style` | Lint and format check (biome) |
 | `npm run style:fix` | Auto-fix biome issues |
 
+## Debugging
+
+Debug logs can be found in `tmp/logs/`. If this directory does not exist run `task up` to bootstrap.
+
 ## Writing tests
 
 - Tests live in `test/` mirroring the `src/` structure.
@@ -54,8 +58,8 @@ A change is complete when ALL of the following pass:
 - Do not duplicate content across docs — link instead
 - Renderers live in `src/renderers/`, tools in `src/tools/`, commands in `src/commands/`
 
-## Do NOT
+## Rules
 
-- Edit `node_modules/` or generated files
-- Skip tests after behavior changes
-- Duplicate documentation across `docs/` files
+- NEVER Edit `node_modules/` or generated files
+- NEVER Skip tests after behavior changes
+- NEVER Duplicate documentation across `docs/` files

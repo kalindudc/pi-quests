@@ -27,7 +27,7 @@ export type QuestAction =
   | { type: typeof QUEST_ACTIONS.clear }
   | { type: typeof QUEST_ACTIONS.revert };
 
-export type QuestOperationResult = { success: boolean; message: string };
+export type QuestOperationResult = { success: boolean; message: string; quest?: Quest };
 
 /**
  * In-memory quest data plane.
@@ -243,7 +243,7 @@ export class QuestLog {
           return { success: false, message: formatNotFound(action.id) };
         }
 
-        return { success: true, message: formatToggleResult(action.id, q.done) };
+        return { success: true, message: formatToggleResult(action.id, q.done), quest: q };
       }
       case QUEST_ACTIONS.update: {
         if (action.id === undefined) {
@@ -259,7 +259,7 @@ export class QuestLog {
           return { success: false, message: formatNotFound(action.id) };
         }
 
-        return { success: true, message: formatUpdateResult(q) };
+        return { success: true, message: formatUpdateResult(q), quest: q };
       }
       case QUEST_ACTIONS.delete: {
         if (action.id === undefined) {
@@ -271,7 +271,7 @@ export class QuestLog {
           return { success: false, message: formatNotFound(action.id) };
         }
 
-        return { success: true, message: formatDeleteResult(q) };
+        return { success: true, message: formatDeleteResult(q), quest: q };
       }
       case QUEST_ACTIONS.clear: {
         const count = this.clear();
@@ -321,9 +321,17 @@ export class QuestLog {
   }
 }
 
-export function makeToolResult(text: string, questLog: QuestLog): AgentToolResult<unknown> {
+export function makeToolResult(
+  text: string,
+  questLog: QuestLog,
+  displayQuests?: Quest[],
+): AgentToolResult<unknown> {
   return {
     content: [{ type: "text", text }],
-    details: { quests: questLog.getAll(), nextId: questLog.getNextId() },
+    details: {
+      quests: questLog.getAll(),
+      nextId: questLog.getNextId(),
+      displayQuests,
+    },
   };
 }

@@ -16,15 +16,15 @@
 ```typescript
 {
   action: "add" | "list" | "toggle" | "update" | "delete" | "clear" | "revert",
-  description?: string,
   descriptions?: string[],
+  description?: string,
   id?: number
 }
 ```
 
 | Action | Required params | Behavior |
 |--------|----------------|----------|
-| `add` | `description` or `descriptions[]` | Adds one or many quests |
+| `add` | `descriptions[]` | Adds one or many quests (required) |
 | `list` | — | Returns all quests as plain text |
 | `toggle` | `id` | Flips `done` flag for the given quest |
 | `update` | `id`, `description` | Changes a quest description |

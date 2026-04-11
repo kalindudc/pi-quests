@@ -13,7 +13,7 @@
 **Via tool:**
 
 ```json
-{ "action": "add", "description": "Refactor auth middleware" }
+{ "action": "add", "descriptions": ["Refactor auth middleware"] }
 ```
 
 **Batch via tool:**

@@ -52,13 +52,23 @@ function runTool(
 ): AgentToolResult<unknown> {
   const result = questLog.execute(action);
   logger.debug("quests:tool", "execute-complete", { toolCallId, success: result.success });
-  return makeToolResult(result.message, questLog);
+
+  const displayQuests =
+    action.type === QUEST_ACTIONS.add ||
+    action.type === QUEST_ACTIONS.list ||
+    action.type === QUEST_ACTIONS.revert
+      ? questLog.getAll()
+      : result.quest
+        ? [result.quest]
+        : undefined;
+
+  return makeToolResult(result.message, questLog, displayQuests);
 }
 
 export async function questToolExecute(
   questLog: QuestLog,
   toolCallId: string,
-  params: Static<typeof QuestParams>,
+  params: QuestToolParams,
 ): Promise<AgentToolResult<unknown>> {
   logger.debug("quests:tool", "execute", { toolCallId, action: params.action, id: params.id });
   const handler = toolHandlers[params.action];

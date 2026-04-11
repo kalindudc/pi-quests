@@ -14,7 +14,7 @@ function getText(widget: import("@mariozechner/pi-tui").Text): string {
 }
 
 describe("renderQuestCall", () => {
-  it("renders add action with description preview", () => {
+  it("renders add action with descriptions count", () => {
     const result = renderQuestCall(
       { action: QUEST_ACTIONS.add, descriptions: ["Test quest"] },
       mockTheme,
@@ -47,7 +47,7 @@ describe("renderQuestCall", () => {
 });
 
 describe("renderQuestResult", () => {
-  it("renders quest list when quests are present", () => {
+  it("renders full quest list when only quests are present", () => {
     const result = renderQuestResult(
       {
         content: [{ type: "text", text: "" }],
@@ -65,6 +65,29 @@ describe("renderQuestResult", () => {
     const text = getText(result);
     expect(text).toContain("#1");
     expect(text).toContain("Done quest");
+    expect(text).toContain("#2");
+    expect(text).toContain("Pending quest");
+  });
+
+  it("renders displayQuests when present instead of full quests", () => {
+    const result = renderQuestResult(
+      {
+        content: [{ type: "text", text: "" }],
+        details: {
+          quests: [
+            { id: 1, description: "Done quest", done: true },
+            { id: 2, description: "Pending quest", done: false },
+          ],
+          displayQuests: [{ id: 2, description: "Pending quest", done: false }],
+        },
+      },
+      { expanded: false, isPartial: false },
+      mockTheme,
+      {},
+    );
+    const text = getText(result);
+    expect(text).not.toContain("#1");
+    expect(text).not.toContain("Done quest");
     expect(text).toContain("#2");
     expect(text).toContain("Pending quest");
   });

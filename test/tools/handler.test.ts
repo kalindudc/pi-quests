@@ -80,6 +80,60 @@ describe("questToolExecute", () => {
     const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.revert });
     expect(getText(result.content[0]!)).toContain("Reverted add quest #1");
   });
+
+  it("includes full quest list in details for add action", async () => {
+    const log = createLog();
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.add,
+      descriptions: ["A", "B"],
+    });
+    const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
+    expect(details.quests).toHaveLength(2);
+    expect(details.displayQuests).toEqual(details.quests);
+  });
+
+  it("includes only affected quest in displayQuests for toggle", async () => {
+    const log = createLog();
+    log.add("A");
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.toggle, id: 1 });
+    const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
+    expect(details.quests).toHaveLength(1);
+    expect(details.displayQuests).toHaveLength(1);
+    expect((details.displayQuests![0] as { done: boolean }).done).toBe(true);
+  });
+
+  it("includes only affected quest in displayQuests for update", async () => {
+    const log = createLog();
+    log.add("A");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.update,
+      id: 1,
+      description: "B",
+    });
+    const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
+    expect(details.quests).toHaveLength(1);
+    expect(details.displayQuests).toHaveLength(1);
+    expect((details.displayQuests![0] as { description: string }).description).toBe("B");
+  });
+
+  it("includes only affected quest in displayQuests for delete", async () => {
+    const log = createLog();
+    log.add("A");
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: 1 });
+    const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
+    expect(details.quests).toHaveLength(0);
+    expect(details.displayQuests).toHaveLength(1);
+    expect((details.displayQuests![0] as { description: string }).description).toBe("A");
+  });
+
+  it("omits displayQuests for clear", async () => {
+    const log = createLog();
+    log.add("A");
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.clear });
+    const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
+    expect(details.quests).toHaveLength(0);
+    expect(details.displayQuests).toBeUndefined();
+  });
 });
 
 describe("registerQuestTool", () => {

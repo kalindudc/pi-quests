@@ -5,13 +5,13 @@ import { QUEST_ACTIONS } from "../quest/types.js";
 
 type QuestArgs = {
   action: string;
-  description?: string;
   descriptions?: string[];
   id?: number;
 };
 
 export function renderQuestCall(args: QuestArgs, theme: Theme, _context: unknown): Text {
-  logger.debug("quests:tool", "renderCall", { action: args.action, id: args.id });
+  const id = "id" in args ? args.id : undefined;
+  logger.debug("quests:tool", "renderCall", { action: args.action, id });
   const actionText = theme.fg("toolTitle", theme.bold("quest ")) + theme.fg("accent", args.action);
 
   if (args.action === QUEST_ACTIONS.add && args.descriptions && args.descriptions.length > 0) {
@@ -21,12 +21,6 @@ export function renderQuestCall(args: QuestArgs, theme: Theme, _context: unknown
       0,
       0,
     );
-  }
-
-  if (args.action === QUEST_ACTIONS.add && args.description) {
-    const preview =
-      args.description.length > 60 ? `${args.description.slice(0, 60)}…` : args.description;
-    return new Text(`${actionText} ${theme.fg("muted", preview)}`, 0, 0);
   }
 
   if (
@@ -52,9 +46,10 @@ export function renderQuestResult(
     isPartial: options.isPartial,
   });
   const details = result.details as Record<string, unknown> | undefined;
+  const questsToRender = details?.displayQuests ?? details?.quests;
 
-  if (Array.isArray(details?.quests) && details.quests.length > 0) {
-    const lines = (details.quests as Array<{ id: number; description: string; done: boolean }>).map(
+  if (Array.isArray(questsToRender) && questsToRender.length > 0) {
+    const lines = (questsToRender as Array<{ id: number; description: string; done: boolean }>).map(
       (q) => {
         const marker = q.done ? theme.fg("success", "✓") : theme.fg("dim", "○");
         return `${marker} ${theme.fg("text", `#${q.id}`)} ${theme.fg("muted", q.description)}`;

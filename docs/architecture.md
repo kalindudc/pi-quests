@@ -133,7 +133,7 @@ Because every tool result stores `details: { quests, nextId }`, the entire `Ques
 
 ```typescript
 export type QuestAction =
-  | { type: "add"; description?: string; descriptions?: string[] }
+  | { type: "add"; descriptions?: string[] }
   | { type: "list" }
   | { type: "toggle"; id?: number }
   | { type: "update"; id?: number; description?: string }

@@ -10,7 +10,7 @@
   - `/quests done <id>` command and tool
   - `/quests clear` command and tool
 - [x] agent prompt guidelines for quest management
-- [ ] dynamic `<system-reminder>` nudges via `context` event when the quest tool hasn't been used recently
+- [x] dynamic nudges via `context` event when the quest tool hasn't been used recently
 - [ ] lightweight snapshot capture at quest creation
 - [ ] `/quests rollback <id>` command and tool
 - [ ] snapshot restoration logic (file state + conversation context)
@@ -29,7 +29,6 @@
 - [ ] max quest limit per session
 - [ ] snapshot size limits and exclusions
 - [ ] validation gates before rollback (confirm destructive restore)
-- [ ] agent skill for quest-driven development workflows
 
 ### nice to have (v1.x.x)
 - [ ] quest templates (e.g., "Implement feature", "Refactor module", "Write tests")
