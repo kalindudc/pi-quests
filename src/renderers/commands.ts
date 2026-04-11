@@ -110,9 +110,11 @@ export class QuestListWidget {
 
       const start = this.page * this.pageSize;
       const pageQuests = this.quests.slice(start, start + this.pageSize);
-      for (const q of pageQuests) {
+      for (let i = 0; i < pageQuests.length; i++) {
+        const q = pageQuests[i];
+        const pos = start + i + 1;
         const marker = q.done ? th.fg("success", "  ✓ ") : th.fg("muted", "  ○ ");
-        const idStr = th.fg(q.done ? "dim" : "accent", `#${q.id}`);
+        const idStr = th.fg(q.done ? "dim" : "accent", `#${pos}`);
         const desc = q.done
           ? th.fg("dim", th.strikethrough(q.description))
           : th.fg("text", q.description);

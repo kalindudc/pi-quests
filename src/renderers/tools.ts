@@ -46,15 +46,20 @@ export function renderQuestResult(
     isPartial: options.isPartial,
   });
   const details = result.details as Record<string, unknown> | undefined;
-  const questsToRender = details?.displayQuests ?? details?.quests;
+  const allQuests =
+    (details?.quests as Array<{ id: number; description: string; done: boolean }> | undefined) ??
+    [];
+  const questsToRender = (details?.displayQuests ?? details?.quests) as
+    | Array<{ id: number; description: string; done: boolean }>
+    | undefined;
 
   if (Array.isArray(questsToRender) && questsToRender.length > 0) {
-    const lines = (questsToRender as Array<{ id: number; description: string; done: boolean }>).map(
-      (q) => {
-        const marker = q.done ? theme.fg("success", "✓") : theme.fg("dim", "○");
-        return `${marker} ${theme.fg("text", `#${q.id}`)} ${theme.fg("muted", q.description)}`;
-      },
-    );
+    const lines = questsToRender.map((q) => {
+      const pos = allQuests.findIndex((x) => x.id === q.id) + 1 || 1;
+      const marker = q.done ? theme.fg("success", "✓") : theme.fg("dim", "○");
+
+      return `${marker} ${theme.fg("text", `#${pos}`)} ${theme.fg("muted", q.description)}`;
+    });
 
     return new Text(lines.join("\n"), 0, 0);
   }

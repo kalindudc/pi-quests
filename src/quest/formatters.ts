@@ -2,7 +2,8 @@ export function formatQuestList(
   quests: { id: number; description: string; done: boolean }[],
 ): string {
   if (quests.length === 0) return "No quests.";
-  return quests.map((q) => `#${q.id} [${q.done ? "x" : " "}] ${q.description}`).join("\n");
+
+  return quests.map((q, i) => `#${i + 1} [${q.done ? "x" : " "}] ${q.description}`).join("\n");
 }
 
 export function formatAddResult(q: { id: number; description: string }): string {

@@ -47,14 +47,14 @@ describe("renderQuestCall", () => {
 });
 
 describe("renderQuestResult", () => {
-  it("renders full quest list when only quests are present", () => {
+  it("renders full quest list with positional numbers", () => {
     const result = renderQuestResult(
       {
         content: [{ type: "text", text: "" }],
         details: {
           quests: [
-            { id: 1, description: "Done quest", done: true },
-            { id: 2, description: "Pending quest", done: false },
+            { id: 5, description: "Done quest", done: true },
+            { id: 10, description: "Pending quest", done: false },
           ],
         },
       },
@@ -69,16 +69,16 @@ describe("renderQuestResult", () => {
     expect(text).toContain("Pending quest");
   });
 
-  it("renders displayQuests when present instead of full quests", () => {
+  it("renders displayQuests with positional numbers from full list", () => {
     const result = renderQuestResult(
       {
         content: [{ type: "text", text: "" }],
         details: {
           quests: [
-            { id: 1, description: "Done quest", done: true },
-            { id: 2, description: "Pending quest", done: false },
+            { id: 5, description: "Done quest", done: true },
+            { id: 10, description: "Pending quest", done: false },
           ],
-          displayQuests: [{ id: 2, description: "Pending quest", done: false }],
+          displayQuests: [{ id: 10, description: "Pending quest", done: false }],
         },
       },
       { expanded: false, isPartial: false },

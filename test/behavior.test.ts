@@ -107,7 +107,7 @@ describe("quest behavior", () => {
       });
       expect(log.getAll()).toHaveLength(2);
 
-      await questToolExecute(log, "tc2", { action: QUEST_ACTIONS.clear });
+      await questToolExecute(log, "tc2", { action: QUEST_ACTIONS.clear, all: true });
       expect(log.getAll()).toHaveLength(0);
 
       const result = await questToolExecute(log, "tc3", { action: QUEST_ACTIONS.revert });

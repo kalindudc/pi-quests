@@ -140,8 +140,9 @@ describe("createQuestsHandler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add A", ctx);
+    await handler("toggle 1", ctx);
     await handler("clear", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Cleared 1 quests", "info");
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Cleared 1 completed quests", "info");
   });
 
   it("reverts last action", async () => {

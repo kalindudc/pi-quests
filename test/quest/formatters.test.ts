@@ -11,10 +11,10 @@ import {
 } from "../../src/quest/formatters.js";
 
 describe("formatQuestList", () => {
-  it("renders quests with markers", () => {
+  it("renders quests with positional numbers", () => {
     const result = formatQuestList([
-      { id: 1, description: "A", done: true },
-      { id: 2, description: "B", done: false },
+      { id: 5, description: "A", done: true },
+      { id: 10, description: "B", done: false },
     ]);
     expect(result).toBe("#1 [x] A\n#2 [ ] B");
   });

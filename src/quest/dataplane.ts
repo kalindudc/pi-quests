@@ -2,7 +2,6 @@ import type { AgentToolResult, ExtensionContext } from "@mariozechner/pi-coding-
 import { logger } from "../logger.js";
 import {
   formatBatchAddResult,
-  formatClearResult,
   formatDeleteResult,
   formatNotFound,
   formatQuestList,
@@ -16,7 +15,14 @@ export type HistoryEntry =
   | { type: typeof QUEST_ACTIONS.toggle; id: number }
   | { type: typeof QUEST_ACTIONS.update; id: number; previousDescription: string }
   | { type: typeof QUEST_ACTIONS.delete; quest: Quest; index: number }
-  | { type: typeof QUEST_ACTIONS.clear; quests: Quest[]; nextId: number };
+  | {
+      type: typeof QUEST_ACTIONS.clear;
+      previousQuests: Quest[];
+      previousNextId: number;
+      all: false;
+    }
+  | { type: typeof QUEST_ACTIONS.clear; quests: Quest[]; nextId: number; all: true }
+  | { type: typeof QUEST_ACTIONS.reorder; quest: Quest; oldIndex: number; previousIds: number[] };
 
 export type QuestAction =
   | { type: typeof QUEST_ACTIONS.add; descriptions?: string[] }
@@ -24,7 +30,8 @@ export type QuestAction =
   | { type: typeof QUEST_ACTIONS.toggle; id?: number }
   | { type: typeof QUEST_ACTIONS.update; id?: number; description?: string }
   | { type: typeof QUEST_ACTIONS.delete; id?: number }
-  | { type: typeof QUEST_ACTIONS.clear }
+  | { type: typeof QUEST_ACTIONS.clear; all?: boolean }
+  | { type: typeof QUEST_ACTIONS.reorder; id?: number; targetIndex?: number }
   | { type: typeof QUEST_ACTIONS.revert };
 
 export type QuestOperationResult = { success: boolean; message: string; quest?: Quest };
@@ -88,11 +95,34 @@ export class QuestLog {
       return { success: true, message: `Reverted delete for quest #${entry.quest.id}` };
     },
     [QUEST_ACTIONS.clear]: (entry) => {
+      if ("previousQuests" in entry) {
+        const restoredCount = entry.previousQuests.length - this.quests.length;
+        this.quests = [...entry.previousQuests];
+        this.nextId = entry.previousNextId;
+
+        return {
+          success: true,
+          message: `Reverted clear (${restoredCount} quests restored)`,
+        };
+      }
+
       this.quests = [...entry.quests];
       this.nextId = entry.nextId;
 
-      logger.debug("quests:state", "revert-clear", { count: entry.quests.length });
       return { success: true, message: `Reverted clear (${entry.quests.length} quests restored)` };
+    },
+    [QUEST_ACTIONS.reorder]: (entry) => {
+      const currentIndex = this.quests.indexOf(entry.quest);
+      if (currentIndex === -1) return { success: false, message: "Reordered quest not found" };
+
+      this.quests.splice(currentIndex, 1);
+      this.quests.splice(entry.oldIndex, 0, entry.quest);
+      for (let i = 0; i < this.quests.length; i++) {
+        this.quests[i].id = entry.previousIds[i];
+      }
+
+      this.nextId = Math.max(...entry.previousIds, 0) + 1;
+      return { success: true, message: `Reverted reorder for quest #${entry.quest.id}` };
     },
   };
 
@@ -174,14 +204,61 @@ export class QuestLog {
     return quest;
   }
 
-  clear(): number {
+  clear(all = false): number {
+    if (!all) {
+      const done = this.quests.filter((q) => q.done);
+      const previousQuests = this.quests.map((q) => ({ ...q }));
+      const previousNextId = this.nextId;
+      this.quests = this.quests.filter((q) => !q.done);
+      for (let i = 0; i < this.quests.length; i++) {
+        this.quests[i].id = i + 1;
+      }
+      this.nextId = this.quests.length + 1;
+      this.history.push({
+        type: QUEST_ACTIONS.clear,
+        previousQuests,
+        previousNextId,
+        all: false,
+      });
+      logger.debug("quests:state", QUEST_ACTIONS.clear, { count: done.length, all });
+      return done.length;
+    }
     const count = this.quests.length;
-    this.history.push({ type: QUEST_ACTIONS.clear, quests: [...this.quests], nextId: this.nextId });
+    this.history.push({
+      type: QUEST_ACTIONS.clear,
+      quests: [...this.quests],
+      nextId: this.nextId,
+      all: true,
+    });
     this.quests = [];
     this.nextId = 1;
-
-    logger.debug("quests:state", QUEST_ACTIONS.clear, { count });
+    logger.debug("quests:state", QUEST_ACTIONS.clear, { count, all });
     return count;
+  }
+
+  reorder(id: number, targetIndex: number): Quest | undefined {
+    const idx = this.quests.findIndex((q) => q.id === id);
+    if (idx === -1) {
+      logger.debug("quests:state", "reorder-not-found", { id });
+      return undefined;
+    }
+
+    const previousIds = this.quests.map((q) => q.id);
+    const [quest] = this.quests.splice(idx, 1);
+    this.quests.splice(targetIndex, 0, quest);
+    for (let i = 0; i < this.quests.length; i++) {
+      this.quests[i].id = i + 1;
+    }
+
+    this.nextId = this.quests.length + 1;
+    this.history.push({ type: QUEST_ACTIONS.reorder, quest, oldIndex: idx, previousIds });
+    logger.debug("quests:state", QUEST_ACTIONS.reorder, {
+      id: quest.id,
+      targetIndex,
+      total: this.quests.length,
+    });
+
+    return quest;
   }
 
   revert(): QuestOperationResult {
@@ -274,8 +351,24 @@ export class QuestLog {
         return { success: true, message: formatDeleteResult(q), quest: q };
       }
       case QUEST_ACTIONS.clear: {
-        const count = this.clear();
-        return { success: true, message: formatClearResult(count) };
+        const count = this.clear(action.all);
+        const message = action.all
+          ? `Cleared ${count} quests`
+          : `Cleared ${count} completed quests`;
+
+        return { success: true, message };
+      }
+      case QUEST_ACTIONS.reorder: {
+        if (action.id === undefined)
+          return { success: false, message: "Error: id is required for reorder action" };
+
+        if (action.targetIndex === undefined)
+          return { success: false, message: "Error: targetIndex is required for reorder action" };
+
+        const q = this.reorder(action.id, action.targetIndex);
+        if (!q) return { success: false, message: formatNotFound(action.id) };
+
+        return { success: true, message: `Reordered quest #${q.id}: ${q.description}`, quest: q };
       }
       case QUEST_ACTIONS.revert: {
         return this.revert();

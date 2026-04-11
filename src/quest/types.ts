@@ -9,6 +9,7 @@ export const QUEST_ACTIONS = {
   update: "update",
   delete: "delete",
   clear: "clear",
+  reorder: "reorder",
   revert: "revert",
 } as const;
 
@@ -19,6 +20,7 @@ export const QUEST_ACTION_VALUES = [
   QUEST_ACTIONS.update,
   QUEST_ACTIONS.delete,
   QUEST_ACTIONS.clear,
+  QUEST_ACTIONS.reorder,
   QUEST_ACTIONS.revert,
 ] as const;
 
