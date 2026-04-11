@@ -1,5 +1,7 @@
+import type { UserMessage } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createQuestsHandler } from "./commands/handler.js";
+import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "./prompts.js";
 import { QuestLog } from "./quest/dataplane.js";
 import { QuestUsageTracker } from "./quest/tracker.js";
 import { questChangelogRenderer } from "./renderers/changelog.js";
@@ -36,11 +38,20 @@ export default function (pi: ExtensionAPI): void {
 
     const activeQuestCount = questLog.getAll().filter((q) => !q.done).length;
     const nudge = tracker.getNudge(activeQuestCount, latestPrompt);
-    if (!nudge) return undefined;
 
-    const reminder: import("@mariozechner/pi-ai").UserMessage = {
+    const fakeDoneRegex =
+      /\s[-–—]\s*(DONE|COMPLETED|FINISHED)$|\s[([](DONE|COMPLETED|FINISHED)[)\]]$/i;
+    const fakeDone = questLog.getAll().find((q) => !q.done && fakeDoneRegex.test(q.description));
+    if (!nudge && !fakeDone) return undefined;
+
+    let content = nudge ?? "";
+    if (fakeDone) {
+      content += `\nQUEST REMINDER: Quest #${fakeDone.id} has a completion marker appended to its description but is not toggled done. Use the toggle action to mark it done. NEVER append completion markers to descriptions via the update action.`;
+    }
+
+    const reminder: UserMessage = {
       role: "user",
-      content: nudge,
+      content: content.trim(),
       timestamp: Date.now(),
     };
     return { messages: [...event.messages, reminder] };
@@ -48,11 +59,7 @@ export default function (pi: ExtensionAPI): void {
 
   pi.on("before_agent_start", async (event) => {
     const quests = questLog.getAll();
-    const gate =
-      "# Quest Management\nBefore reading files, running commands, or making edits, ALWAYS ensure the current work is tracked as specific, actionable quests. ALWAYS break broad requests into concrete steps.\n\n";
-
-    let reminder =
-      "## Quest Management\nUse the quest tool VERY frequently to track tasks, plans, and progress throughout the conversation. It is critical that you toggle quests to done as soon as you complete them. NEVER batch up multiple tasks before marking them completed.\n\nNEVER create a single vague quest for broad requests. Analyze the user's intent and break it into specific, independent, actionable quests that each represent a concrete step.";
+    let reminder = QUEST_PROMPT_REMINDER.join("\n");
     if (quests.length > 0) {
       const remaining = quests.filter((q) => !q.done).length;
       const list = quests
@@ -62,7 +69,9 @@ export default function (pi: ExtensionAPI): void {
       reminder += `\n\nActive quests (${remaining}/${quests.length}):\n${list}`;
     }
 
-    return { systemPrompt: `${gate}${event.systemPrompt}\n\n${reminder}` };
+    return {
+      systemPrompt: `# Quest Management\n${QUEST_PROMPT_GATE}${event.systemPrompt}\n\n## Quest Management\n${reminder}`,
+    };
   });
 
   registerQuestTool(pi, questLog);

@@ -21,7 +21,7 @@ describe("parseQuestArgs", () => {
   });
 
   it("parses clear", () => {
-    expect(parseQuestArgs("clear")).toEqual({ action: QUEST_ACTIONS.clear });
+    expect(parseQuestArgs("clear")).toEqual({ action: QUEST_ACTIONS.clear, all: false });
   });
 
   it("parses add with description", () => {
@@ -87,5 +87,17 @@ describe("parseQuestArgs", () => {
 
   it("treats empty args as list", () => {
     expect(parseQuestArgs("")).toEqual({ action: QUEST_ACTIONS.list });
+  });
+
+  it("parses reorder and clear variants", () => {
+    expect(parseQuestArgs("reorder 2 0")).toEqual({
+      action: QUEST_ACTIONS.reorder,
+      id: 2,
+      targetIndex: 0,
+    });
+    expect(parseQuestArgs("clear all")).toEqual({ action: QUEST_ACTIONS.clear, all: true });
+    expect(parseQuestArgs("clear")).toEqual({ action: QUEST_ACTIONS.clear, all: false });
+    expect(parseQuestArgs("reorder")).toEqual({ error: "Usage: /quests reorder <id> <index>" });
+    expect(parseQuestArgs("clear invalid")).toEqual({ error: "Usage: /quests clear [all]" });
   });
 });

@@ -1,3 +1,4 @@
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 
 describe("extension entry point", () => {
@@ -18,7 +19,7 @@ describe("extension entry point", () => {
   it("injects Quest Management section into system prompt", async () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
-    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    init(pi as unknown as ExtensionAPI);
     const handler = pi._handlers.before_agent_start[0];
     const result = await handler({ systemPrompt: "base" });
     expect(result.systemPrompt).toContain("Quest Management");
@@ -32,7 +33,7 @@ describe("extension entry point", () => {
   it("includes active quests in the reminder", async () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
-    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    init(pi as unknown as ExtensionAPI);
     const branch = [
       {
         type: "message",
@@ -57,7 +58,7 @@ describe("extension entry point", () => {
   it("nudges via context after 5 non-quest tools with 0 active quests", async () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
-    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    init(pi as unknown as ExtensionAPI);
     for (let i = 0; i < 5; i++) await pi._handlers.tool_execution_end[0]({ toolName: "read" });
     const result = await pi._handlers.context[0]({ messages: [] });
     expect(result.messages).toHaveLength(1);
@@ -70,7 +71,7 @@ describe("extension entry point", () => {
   it("nudges via context on first tool use before any quest call", async () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
-    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    init(pi as unknown as ExtensionAPI);
     for (let i = 0; i < 3; i++) await pi._handlers.tool_execution_end[0]({ toolName: "bash" });
     expect((await pi._handlers.context[0]({ messages: [] })).messages).toHaveLength(1);
   });
@@ -78,7 +79,7 @@ describe("extension entry point", () => {
   it("nudges for complex prompt when 0 active quests exist", async () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
-    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    init(pi as unknown as ExtensionAPI);
     const result = await pi._handlers.context[0]({
       messages: [{ role: "user", content: "Refactor the auth module", timestamp: 1 }],
     });
@@ -89,7 +90,7 @@ describe("extension entry point", () => {
   it("nudges at most once per turn", async () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
-    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    init(pi as unknown as ExtensionAPI);
     for (let i = 0; i < 5; i++) await pi._handlers.tool_execution_end[0]({ toolName: "read" });
     const first = await pi._handlers.context[0]({ messages: [] });
     expect(first.messages).toHaveLength(1);

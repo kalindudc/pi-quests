@@ -1,3 +1,4 @@
+import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 import { createQuestsHandler } from "../src/commands/handler.js";
 import { QuestLog } from "../src/quest/dataplane.js";
@@ -71,7 +72,7 @@ describe("quest behavior", () => {
       const ctx = createMockCtx();
       const sessionCtx = {
         sessionManager: { getBranch: vi.fn().mockReturnValue(entries) },
-      } as unknown as import("@mariozechner/pi-coding-agent").ExtensionContext;
+      } as unknown as ExtensionContext;
 
       log.reconstructFromSession(sessionCtx);
       expect(log.getAll()).toHaveLength(1);

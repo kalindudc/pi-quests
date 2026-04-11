@@ -1,3 +1,5 @@
+import type { Theme } from "@mariozechner/pi-coding-agent";
+import type { Text } from "@mariozechner/pi-tui";
 import { describe, expect, it, vi } from "vitest";
 import { QUEST_ACTIONS } from "../../src/quest/types.js";
 import { renderQuestCall, renderQuestResult } from "../../src/renderers/tools.js";
@@ -7,9 +9,9 @@ vi.mock("../../src/logger.js", () => ({ logger: { debug: vi.fn() } }));
 const mockTheme = {
   fg: (_name: string, text: string) => text,
   bold: (text: string) => text,
-} as unknown as import("@mariozechner/pi-coding-agent").Theme;
+} as unknown as Theme;
 
-function getText(widget: import("@mariozechner/pi-tui").Text): string {
+function getText(widget: Text): string {
   return (widget as unknown as { text: string }).text;
 }
 

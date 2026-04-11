@@ -1,3 +1,4 @@
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 import { QuestLog } from "../../src/quest/dataplane.js";
 import { QUEST_ACTIONS } from "../../src/quest/types.js";
@@ -134,6 +135,30 @@ describe("questToolExecute", () => {
     expect(details.quests).toHaveLength(0);
     expect(details.displayQuests).toBeUndefined();
   });
+
+  it("reorders via tool", async () => {
+    const log = createLog();
+    log.add("A");
+    log.add("B");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.reorder,
+      id: 2,
+      targetIndex: 0,
+    });
+    expect(getText(result.content[0]!)).toContain("Reordered quest #1: B");
+    expect(log.getAll()[0]!.description).toBe("B");
+  });
+
+  it("clears done via tool default", async () => {
+    const log = createLog();
+    log.add("A");
+    log.add("B");
+    log.toggle(1);
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.clear });
+    expect(getText(result.content[0]!)).toContain("Cleared 1 completed quests");
+    expect(log.getAll()).toHaveLength(1);
+    expect(log.getAll()[0]!.description).toBe("B");
+  });
 });
 
 describe("registerQuestTool", () => {
@@ -142,7 +167,7 @@ describe("registerQuestTool", () => {
       registerTool: vi.fn(),
     };
     const log = new QuestLog();
-    registerQuestTool(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI, log);
+    registerQuestTool(pi as unknown as ExtensionAPI, log);
     expect(pi.registerTool).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "quest",

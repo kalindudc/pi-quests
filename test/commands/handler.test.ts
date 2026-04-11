@@ -169,4 +169,21 @@ describe("createQuestsHandler", () => {
       "info",
     );
   });
+
+  it("reorders via command", async () => {
+    const ctx = createMockCtx();
+    const handler = createHandler();
+    await handler("add A", ctx);
+    await handler("add B", ctx);
+    await handler("reorder 2 0", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Reordered quest #1: B", "info");
+  });
+
+  it("clears all via command with all arg", async () => {
+    const ctx = createMockCtx();
+    const handler = createHandler();
+    await handler("add A", ctx);
+    await handler("clear all", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Cleared 1 quests", "info");
+  });
 });

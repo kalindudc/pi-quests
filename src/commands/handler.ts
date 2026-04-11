@@ -17,6 +17,7 @@ type MutatingCommand = Extract<
       | typeof QUEST_ACTIONS.update
       | typeof QUEST_ACTIONS.delete
       | typeof QUEST_ACTIONS.clear
+      | typeof QUEST_ACTIONS.reorder
       | typeof QUEST_ACTIONS.revert;
   }
 >["action"];
@@ -32,7 +33,12 @@ const commandActionBuilders: {
     description: p.description,
   }),
   [QUEST_ACTIONS.delete]: (p) => ({ type: QUEST_ACTIONS.delete, id: p.id }),
-  [QUEST_ACTIONS.clear]: () => ({ type: QUEST_ACTIONS.clear }),
+  [QUEST_ACTIONS.clear]: (p) => ({ type: QUEST_ACTIONS.clear, all: p.all }),
+  [QUEST_ACTIONS.reorder]: (p) => ({
+    type: QUEST_ACTIONS.reorder,
+    id: p.id,
+    targetIndex: p.targetIndex,
+  }),
   [QUEST_ACTIONS.revert]: () => ({ type: QUEST_ACTIONS.revert }),
 };
 
@@ -101,6 +107,7 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog) {
       case QUEST_ACTIONS.update:
       case QUEST_ACTIONS.delete:
       case QUEST_ACTIONS.clear:
+      case QUEST_ACTIONS.reorder:
       case QUEST_ACTIONS.revert: {
         const builder = commandActionBuilders[parsed.action];
         const action = builder(parsed as never);
@@ -119,8 +126,9 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog) {
         lines.push("  toggle <id>        - Toggle quest completion");
         lines.push("  delete <id>        - Delete a quest");
         lines.push("  update <id> <desc> - Update a quest description");
+        lines.push("  reorder <id> <idx> - Reorder a quest to index");
         lines.push("  revert             - Revert the last quest change");
-        lines.push("  clear              - Clear all quests");
+        lines.push("  clear [all]        - Clear completed quests, or optionally all quests");
         lines.push("  version            - Show version");
         lines.push("  changelog          - Show changelog");
         lines.push("  h, help            - Show this help message");

@@ -7,7 +7,8 @@ export type ParsedArgs =
   | { action: typeof QUEST_ACTIONS.toggle; id: number }
   | { action: typeof QUEST_ACTIONS.update; id: number; description: string }
   | { action: typeof QUEST_ACTIONS.delete; id: number }
-  | { action: typeof QUEST_ACTIONS.clear }
+  | { action: typeof QUEST_ACTIONS.clear; all?: boolean }
+  | { action: typeof QUEST_ACTIONS.reorder; id: number; targetIndex: number }
   | { action: typeof QUEST_ACTIONS.revert }
   | { action: "help" }
   | { action: "version" }
@@ -36,7 +37,7 @@ export function parseQuestArgs(args: string): ParsedArgs {
 
   // Quest actions without arguments
   if (command === QUEST_ACTIONS.list) return { action: QUEST_ACTIONS.list };
-  if (command === QUEST_ACTIONS.clear) return { action: QUEST_ACTIONS.clear };
+  if (command === QUEST_ACTIONS.clear) return parseClearArgs(rest);
   if (command === QUEST_ACTIONS.revert) return { action: QUEST_ACTIONS.revert };
 
   // Quest actions with arguments
@@ -44,6 +45,7 @@ export function parseQuestArgs(args: string): ParsedArgs {
   if (command === QUEST_ACTIONS.toggle) return parseIdAction(QUEST_ACTIONS.toggle, rest);
   if (command === QUEST_ACTIONS.delete) return parseIdAction(QUEST_ACTIONS.delete, rest);
   if (command === QUEST_ACTIONS.update) return parseUpdateArgs(rest);
+  if (command === QUEST_ACTIONS.reorder) return parseReorderArgs(rest);
 
   return { error: `Unknown subcommand: ${command}. Use /quests help to see available commands.` };
 }
@@ -75,4 +77,18 @@ function parseUpdateArgs(tokens: string[]): ParsedArgs {
   if (!description) return { error: "Usage: /quests update <id> <description>" };
 
   return { action: QUEST_ACTIONS.update, id, description };
+}
+
+function parseClearArgs(tokens: string[]): ParsedArgs {
+  const all = tokens[0] === "all";
+  if (tokens.length > 0 && !all) return { error: "Usage: /quests clear [all]" };
+  return { action: QUEST_ACTIONS.clear, all };
+}
+
+function parseReorderArgs(tokens: string[]): ParsedArgs {
+  const id = Number(tokens[0]);
+  const targetIndex = Number(tokens[1]);
+  if (Number.isNaN(id) || Number.isNaN(targetIndex))
+    return { error: "Usage: /quests reorder <id> <index>" };
+  return { action: QUEST_ACTIONS.reorder, id, targetIndex };
 }

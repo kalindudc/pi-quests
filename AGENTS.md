@@ -63,3 +63,4 @@ A change is complete when ALL of the following pass:
 - NEVER Edit `node_modules/` or generated files
 - NEVER Skip tests after behavior changes
 - NEVER Duplicate documentation across `docs/` files
+- NEVER add any inline imports, ALWAYS import types and classes properly if they are being used

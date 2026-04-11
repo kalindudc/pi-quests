@@ -1,6 +1,7 @@
 import type { AgentToolResult, ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { Static } from "@sinclair/typebox";
 import { logger } from "../logger.js";
+import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "../prompts.js";
 import { makeToolResult, type QuestAction, type QuestLog } from "../quest/dataplane.js";
 import { QUEST_ACTIONS } from "../quest/types.js";
 import { renderQuestCall, renderQuestResult } from "../renderers/tools.js";
@@ -90,15 +91,7 @@ export function registerQuestTool(pi: ExtensionAPI, questLog: QuestLog): void {
     description:
       "Manage the session quest log. Use this VERY frequently to track tasks, plans, and progress throughout the conversation.",
     promptSnippet: "Add, list, toggle, update, delete, clear, or revert quest items",
-    promptGuidelines: [
-      "Before reading files, running commands, or making edits, ensure the current work is tracked as specific, actionable quests.",
-      "Do not create a single vague quest for broad requests. Break them into concrete, independent steps.",
-      "When the user gives a plan or a list of tasks, add them as quests immediately.",
-      "It is critical that you toggle quests to done as soon as you complete them. Do NOT batch completions.",
-      "Before delegating to a minion, add a quest for the delegated task.",
-      "For reorder, targetIndex is 0-based (array index), not a 1-based position. If the user says 'move quest to position 5', use targetIndex 4.",
-      "If you are unsure what to do next, use the list action to check active quests.",
-    ],
+    promptGuidelines: [...QUEST_PROMPT_GATE, ...QUEST_PROMPT_REMINDER],
     parameters: QuestParams,
     execute: (toolCallId, params, _signal, _onUpdate, _ctx) =>
       questToolExecute(questLog, toolCallId, params),

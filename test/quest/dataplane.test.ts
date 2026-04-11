@@ -1,3 +1,4 @@
+import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 import { QuestLog } from "../../src/quest/dataplane.js";
 import { QUEST_ACTIONS } from "../../src/quest/types.js";
@@ -178,7 +179,7 @@ describe("QuestLog", () => {
     ];
     const ctx = {
       sessionManager: { getBranch: vi.fn().mockReturnValue(entries) },
-    } as unknown as import("@mariozechner/pi-coding-agent").ExtensionContext;
+    } as unknown as ExtensionContext;
     log.reconstructFromSession(ctx);
     expect(log.getAll()).toEqual([{ id: 1, description: "X", done: true, createdAt: 1 }]);
   });
