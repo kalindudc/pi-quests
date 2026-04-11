@@ -55,6 +55,9 @@ tasks:
         rm -rf $HOME/.pi/agent/sessions/*tmp-pi-quests-test*
         rm -rf /tmp/logs/pi-quests/*.log
         touch /tmp/logs/pi-quests/debug.log
+        rm -rf .pi/git
+        rm -rf .pi/npm
+        pi update
 
   dev:
     desc: "Load extension into pi. Open 'task logs' in a second terminal to see debug output."
