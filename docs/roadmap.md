@@ -14,6 +14,9 @@
 - [ ] lightweight snapshot capture at quest creation
 - [ ] `/quests rollback <id>` command and tool
 - [ ] snapshot restoration logic (file state + conversation context)
+- [ ] add a quest log reset
+- [ ] dynamic quest log resets, to avoid confusion
+- [ ] quest log filtering, only show incomplete quests, etc...
 
 ### observability
 - [x] progress indicator for active quest (e.g., 3 of 7 complete)

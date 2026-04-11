@@ -53,4 +53,46 @@ describe("extension entry point", () => {
     const result = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
     expect(result.systemPrompt).toContain("Test task");
   });
+
+  it("nudges via context after 5 non-quest tools with 0 active quests", async () => {
+    const pi = createMockPi();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    for (let i = 0; i < 5; i++) await pi._handlers.tool_execution_end[0]({ toolName: "read" });
+    const result = await pi._handlers.context[0]({ messages: [] });
+    expect(result.messages).toHaveLength(1);
+    expect((result.messages[0] as { content: string }).content).toContain("QUEST REMINDER");
+    expect((result.messages[0] as { content: string }).content).toContain(
+      "acknowledge this reminder",
+    );
+  });
+
+  it("nudges via context on first tool use before any quest call", async () => {
+    const pi = createMockPi();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    for (let i = 0; i < 3; i++) await pi._handlers.tool_execution_end[0]({ toolName: "bash" });
+    expect((await pi._handlers.context[0]({ messages: [] })).messages).toHaveLength(1);
+  });
+
+  it("nudges for complex prompt when 0 active quests exist", async () => {
+    const pi = createMockPi();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    const result = await pi._handlers.context[0]({
+      messages: [{ role: "user", content: "Refactor the auth module", timestamp: 1 }],
+    });
+    expect(result.messages).toHaveLength(2);
+    expect((result.messages[1] as { content: string }).content).toContain("QUEST REMINDER");
+  });
+
+  it("nudges at most once per turn", async () => {
+    const pi = createMockPi();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as import("@mariozechner/pi-coding-agent").ExtensionAPI);
+    for (let i = 0; i < 5; i++) await pi._handlers.tool_execution_end[0]({ toolName: "read" });
+    const first = await pi._handlers.context[0]({ messages: [] });
+    expect(first.messages).toHaveLength(1);
+    expect(await pi._handlers.context[0]({ messages: [] })).toBeUndefined();
+  });
 });

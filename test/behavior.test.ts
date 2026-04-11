@@ -33,7 +33,7 @@ describe("quest behavior", () => {
       await handler("add Test quest", ctx);
       expect(log.getAll()).toHaveLength(1);
       expect(log.getAll()[0]!.description).toBe("Test quest");
-      expect(ctx.ui.notify).toHaveBeenCalledWith("Added quest #1: Test quest", "info");
+      expect(ctx.ui.notify).toHaveBeenCalledWith("Added 1 quests:\n#1: Test quest", "info");
 
       await handler("list", ctx);
       expect(ctx.ui.custom).toHaveBeenCalled();
@@ -87,7 +87,7 @@ describe("quest behavior", () => {
       const log = new QuestLog();
       await questToolExecute(log, "tc1", {
         action: QUEST_ACTIONS.add,
-        description: "Test",
+        descriptions: ["Test"],
       });
       expect(log.getAll()).toHaveLength(1);
 

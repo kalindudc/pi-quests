@@ -18,7 +18,6 @@ const toolHandlers: {
   [QUEST_ACTIONS.add](questLog, params, toolCallId) {
     return runTool(questLog, toolCallId, {
       type: QUEST_ACTIONS.add,
-      description: params.description,
       descriptions: params.descriptions,
     });
   },

@@ -1,7 +1,6 @@
 import type { AgentToolResult, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { logger } from "../logger.js";
 import {
-  formatAddResult,
   formatBatchAddResult,
   formatClearResult,
   formatDeleteResult,
@@ -20,7 +19,7 @@ export type HistoryEntry =
   | { type: typeof QUEST_ACTIONS.clear; quests: Quest[]; nextId: number };
 
 export type QuestAction =
-  | { type: typeof QUEST_ACTIONS.add; description?: string; descriptions?: string[] }
+  | { type: typeof QUEST_ACTIONS.add; descriptions?: string[] }
   | { type: typeof QUEST_ACTIONS.list }
   | { type: typeof QUEST_ACTIONS.toggle; id?: number }
   | { type: typeof QUEST_ACTIONS.update; id?: number; description?: string }
@@ -225,12 +224,10 @@ export class QuestLog {
 
           return { success: true, message: formatBatchAddResult(added) };
         }
-        if (!action.description) {
-          return { success: false, message: "Error: description is required for add action" };
-        }
-
-        const q = this.add(action.description);
-        return { success: true, message: formatAddResult(q) };
+        return {
+          success: false,
+          message: "Error: at least one description is required for add action",
+        };
       }
       case QUEST_ACTIONS.list: {
         const quests = this.getAll();

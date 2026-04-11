@@ -70,7 +70,7 @@ describe("createQuestsHandler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add Test quest", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Added quest #1: Test quest", "info");
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Added 1 quests:\n#1: Test quest", "info");
   });
 
   it("lists quests with custom UI", async () => {

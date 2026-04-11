@@ -2,7 +2,7 @@ import { logger } from "../logger.js";
 import { QUEST_ACTIONS } from "../quest/types.js";
 
 export type ParsedArgs =
-  | { action: typeof QUEST_ACTIONS.add; description: string }
+  | { action: typeof QUEST_ACTIONS.add; descriptions: string[] }
   | { action: typeof QUEST_ACTIONS.list }
   | { action: typeof QUEST_ACTIONS.toggle; id: number }
   | { action: typeof QUEST_ACTIONS.update; id: number; description: string }
@@ -52,7 +52,7 @@ function parseAddArgs(tokens: string[]): ParsedArgs {
   const description = tokens.join(" ").trim();
   if (!description) return { error: "Usage: /quests add <description>" };
 
-  return { action: QUEST_ACTIONS.add, description };
+  return { action: QUEST_ACTIONS.add, descriptions: [description] };
 }
 
 function parseIdAction(

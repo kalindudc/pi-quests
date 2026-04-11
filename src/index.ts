@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createQuestsHandler } from "./commands/handler.js";
 import { QuestLog } from "./quest/dataplane.js";
+import { QuestUsageTracker } from "./quest/tracker.js";
 import { questChangelogRenderer } from "./renderers/changelog.js";
 import { registerQuestTool } from "./tools/handler.js";
 
@@ -16,9 +17,34 @@ import { registerQuestTool } from "./tools/handler.js";
  */
 export default function (pi: ExtensionAPI): void {
   const questLog = new QuestLog();
+  const tracker = new QuestUsageTracker();
 
   pi.on("session_start", async (_event, ctx) => questLog.reconstructFromSession(ctx));
   pi.on("session_tree", async (_event, ctx) => questLog.reconstructFromSession(ctx));
+
+  pi.on("turn_start", async () => tracker.clearTurnNudge());
+
+  pi.on("tool_execution_end", async (event) => {
+    tracker.onToolExecution(event.toolName);
+  });
+
+  pi.on("context", async (event) => {
+    const latestPrompt = event.messages
+      .filter((m) => m.role === "user")
+      .map((m) => (typeof m.content === "string" ? m.content : ""))
+      .join("\n");
+
+    const activeQuestCount = questLog.getAll().filter((q) => !q.done).length;
+    const nudge = tracker.getNudge(activeQuestCount, latestPrompt);
+    if (!nudge) return undefined;
+
+    const reminder: import("@mariozechner/pi-ai").UserMessage = {
+      role: "user",
+      content: nudge,
+      timestamp: Date.now(),
+    };
+    return { messages: [...event.messages, reminder] };
+  });
 
   pi.on("before_agent_start", async (event) => {
     const quests = questLog.getAll();

@@ -16,12 +16,12 @@ function getText(widget: import("@mariozechner/pi-tui").Text): string {
 describe("renderQuestCall", () => {
   it("renders add action with description preview", () => {
     const result = renderQuestCall(
-      { action: QUEST_ACTIONS.add, description: "Test quest" },
+      { action: QUEST_ACTIONS.add, descriptions: ["Test quest"] },
       mockTheme,
       {},
     );
     expect(getText(result)).toContain("quest add");
-    expect(getText(result)).toContain("Test quest");
+    expect(getText(result)).toContain("[1 quest]");
   });
 
   it("renders batch add with count", () => {

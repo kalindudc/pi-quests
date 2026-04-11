@@ -27,7 +27,7 @@ describe("parseQuestArgs", () => {
   it("parses add with description", () => {
     expect(parseQuestArgs("add Buy milk")).toEqual({
       action: QUEST_ACTIONS.add,
-      description: "Buy milk",
+      descriptions: ["Buy milk"],
     });
   });
 

@@ -137,9 +137,9 @@ describe("QuestLog", () => {
 describe("QuestLog.execute", () => {
   it("executes add action", () => {
     const log = new QuestLog();
-    const result = log.execute({ type: QUEST_ACTIONS.add, description: "Test" });
+    const result = log.execute({ type: QUEST_ACTIONS.add, descriptions: ["Test"] });
     expect(result.success).toBe(true);
-    expect(result.message).toContain("Added quest #1");
+    expect(result.message).toContain("Added 1 quests");
     expect(log.getAll()).toHaveLength(1);
   });
 
@@ -147,7 +147,7 @@ describe("QuestLog.execute", () => {
     const log = new QuestLog();
     const result = log.execute({ type: QUEST_ACTIONS.add });
     expect(result.success).toBe(false);
-    expect(result.message).toContain("description is required");
+    expect(result.message).toContain("at least one description is required");
   });
 
   it("executes batch add action", () => {

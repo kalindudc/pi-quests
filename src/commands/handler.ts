@@ -24,7 +24,7 @@ type MutatingCommand = Extract<
 const commandActionBuilders: {
   [K in MutatingCommand]: (parsed: Extract<ParsedArgs, { action: K }>) => QuestAction;
 } = {
-  [QUEST_ACTIONS.add]: (p) => ({ type: QUEST_ACTIONS.add, description: p.description }),
+  [QUEST_ACTIONS.add]: (p) => ({ type: QUEST_ACTIONS.add, descriptions: p.descriptions }),
   [QUEST_ACTIONS.toggle]: (p) => ({ type: QUEST_ACTIONS.toggle, id: p.id }),
   [QUEST_ACTIONS.update]: (p) => ({
     type: QUEST_ACTIONS.update,

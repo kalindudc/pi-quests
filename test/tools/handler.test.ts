@@ -16,10 +16,10 @@ describe("questToolExecute", () => {
     const log = createLog();
     const result = await questToolExecute(log, "tc1", {
       action: QUEST_ACTIONS.add,
-      description: "Test",
+      descriptions: ["Test"],
     });
     expect(result.content[0]).toEqual(
-      expect.objectContaining({ text: expect.stringContaining("Added quest #1") }),
+      expect.objectContaining({ text: expect.stringContaining("Added 1 quests") }),
     );
   });
 
