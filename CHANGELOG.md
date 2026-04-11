@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-11
+
+- feat: add dynamic quest usage nudges via context hook
+- feat: inject quest management reminders into system prompt
+- feat: render targeted quest results and add parameter descriptions
+- chore: add npm release flow
+- chore: refactor codebase for improved maintainability
+
 ## [0.1.0] - 2026-04-10
 
 - feat: add session-scoped quest log with tools, commands, and TUI widgets
