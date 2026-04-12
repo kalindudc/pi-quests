@@ -1,5 +1,6 @@
 import type { Theme } from "@mariozechner/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import type { Quest } from "../quest/types.js";
 
@@ -7,12 +8,12 @@ export class QuestListWidget {
   private cachedWidth?: number;
   private cachedLines?: string[];
   private page = 0;
-  private readonly pageSize = 10;
 
   constructor(
     private quests: Quest[],
     private theme: Theme,
     private onClose: () => void,
+    private readonly config: ResolvedConfig,
   ) {
     logger.debug("quests:widget", "create", { questCount: quests.length });
   }
@@ -37,7 +38,7 @@ export class QuestListWidget {
   }
 
   private get totalPages(): number {
-    return Math.max(1, Math.ceil(this.quests.length / this.pageSize));
+    return Math.max(1, Math.ceil(this.quests.length / this.config.display.pageSize));
   }
 
   private nextPage(): void {
@@ -100,7 +101,7 @@ export class QuestListWidget {
       );
     } else {
       // Mini progress bar
-      const barWidth = Math.min(width - 4, 24);
+      const barWidth = Math.min(width - 4, this.config.display.progressBarMaxWidth);
       const filled = Math.round((doneCount / total) * barWidth);
       const empty = barWidth - filled;
       const bar = th.fg("success", "█".repeat(filled)) + th.fg("dim", "░".repeat(empty));
@@ -108,13 +109,15 @@ export class QuestListWidget {
       lines.push(truncateToWidth(`  ${bar}  ${th.fg("muted", `${doneCount}/${total}`)}`, width));
       lines.push("");
 
-      const start = this.page * this.pageSize;
-      const pageQuests = this.quests.slice(start, start + this.pageSize);
+      const start = this.page * this.config.display.pageSize;
+      const pageQuests = this.quests.slice(start, start + this.config.display.pageSize);
       for (let i = 0; i < pageQuests.length; i++) {
         const q = pageQuests[i];
         const pos = start + i + 1;
         const marker = q.done ? th.fg("success", "  ✓ ") : th.fg("muted", "  ○ ");
-        const idSpacing = " ".repeat(3 - visibleWidth(`${pos}`));
+        const idSpacing = " ".repeat(
+          `${16 ** this.config.ids.length}`.length - visibleWidth(`${pos}`),
+        );
         const idStr = `${th.fg(q.done ? "dim" : "accent", `#${pos}`)}${idSpacing} ${th.fg("muted", `[${q.id}]`)}`;
         const desc = q.done
           ? th.fg("dim", th.strikethrough(q.description))

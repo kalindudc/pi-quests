@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_CONFIG } from "../../src/config.js";
 import { QuestUsageTracker } from "../../src/quest/tracker.js";
 
 describe("QuestUsageTracker", () => {
   it("returns init nudge after 3 non-quest tools when never used", () => {
-    const tracker = new QuestUsageTracker();
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
     tracker.onToolExecution("read");
     tracker.onToolExecution("read");
     expect(tracker.getNudge(0)).toBeUndefined();
@@ -15,7 +16,7 @@ describe("QuestUsageTracker", () => {
   });
 
   it("returns complex-task nudge when prompt matches and 0 active quests", () => {
-    const tracker = new QuestUsageTracker();
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
     const nudge = tracker.getNudge(0, "Refactor the auth module");
     expect(nudge).toContain("QUEST REMINDER");
     expect(nudge).toContain("complex task");
@@ -24,7 +25,7 @@ describe("QuestUsageTracker", () => {
 
   it("returns time-based nudge after 8 minutes and 3 tools since last quest use", () => {
     vi.useFakeTimers();
-    const tracker = new QuestUsageTracker();
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
     tracker.onToolExecution("quest");
     vi.advanceTimersByTime(1);
     tracker.onToolExecution("read");
@@ -40,7 +41,7 @@ describe("QuestUsageTracker", () => {
   });
 
   it("returns zero-active nudge after 5 consecutive non-quest tools with 0 active", () => {
-    const tracker = new QuestUsageTracker();
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
     tracker.onToolExecution("quest");
     for (let i = 0; i < 4; i++) tracker.onToolExecution("read");
     expect(tracker.getNudge(0)).toBeUndefined();
@@ -52,7 +53,7 @@ describe("QuestUsageTracker", () => {
   });
 
   it("returns stale-progress nudge after 10 consecutive non-quest tools with active quests", () => {
-    const tracker = new QuestUsageTracker();
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
     tracker.onToolExecution("quest");
     for (let i = 0; i < 9; i++) tracker.onToolExecution("read");
     expect(tracker.getNudge(2)).toBeUndefined();
@@ -64,7 +65,7 @@ describe("QuestUsageTracker", () => {
   });
 
   it("resets consecutive counter on quest tool use", () => {
-    const tracker = new QuestUsageTracker();
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
     for (let i = 0; i < 2; i++) tracker.onToolExecution("read");
     tracker.onToolExecution("quest");
     for (let i = 0; i < 4; i++) tracker.onToolExecution("read");
@@ -76,14 +77,14 @@ describe("QuestUsageTracker", () => {
   });
 
   it("returns undefined when already nudged this turn", () => {
-    const tracker = new QuestUsageTracker();
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
     for (let i = 0; i < 5; i++) tracker.onToolExecution("read");
     expect(tracker.getNudge(0)).toBeDefined();
     expect(tracker.getNudge(0)).toBeUndefined();
   });
 
   it("does not nudge for complex prompt when active quests exist", () => {
-    const tracker = new QuestUsageTracker();
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
     expect(tracker.getNudge(3, "Refactor the auth module")).toBeUndefined();
   });
 });

@@ -48,7 +48,7 @@ describe("extension entry point", () => {
     ];
     await pi._handlers.session_start[0](
       {},
-      { sessionManager: { getBranch: vi.fn().mockReturnValue(branch) } },
+      { cwd: "/tmp", sessionManager: { getBranch: vi.fn().mockReturnValue(branch) } },
     );
     const result = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
     expect(result.systemPrompt).toContain("Test task");

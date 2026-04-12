@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_CONFIG } from "../../src/config.js";
 import { QuestLog } from "../../src/quest/dataplane.js";
 import { QUEST_ACTIONS } from "../../src/quest/types.js";
 import { questToolExecute, registerQuestTool } from "../../src/tools/handler.js";
@@ -179,7 +180,7 @@ describe("registerQuestTool", () => {
       registerTool: vi.fn(),
     };
     const log = new QuestLog();
-    registerQuestTool(pi as unknown as ExtensionAPI, log);
+    registerQuestTool(pi as unknown as ExtensionAPI, log, DEFAULT_CONFIG);
     expect(pi.registerTool).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "quest",

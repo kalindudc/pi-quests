@@ -1,6 +1,7 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createQuestsHandler } from "../src/commands/handler.js";
+import { DEFAULT_CONFIG } from "../src/config.js";
 import { QuestLog } from "../src/quest/dataplane.js";
 import { QUEST_ACTIONS } from "../src/quest/types.js";
 import { questToolExecute } from "../src/tools/handler.js";
@@ -33,6 +34,7 @@ function createCommandHandler(log: QuestLog) {
   return createQuestsHandler(
     { sendMessage: vi.fn() } as unknown as Parameters<typeof createQuestsHandler>[0],
     log,
+    DEFAULT_CONFIG,
   );
 }
 

@@ -47,6 +47,24 @@ Available /quests subcommands:
 ![Quests view](docs/assets/quests_view.png)
 
 
+## Configuration
+
+pi-quests reads configuration from pi's settings files. Global settings live at `~/.pi/agent/settings.json` and project overrides go in `.pi/settings.json`.
+
+```json
+{
+  "pi-quests": {
+    "ids": { "length": 2 },
+    "display": {
+      "pageSize": 10,
+      "progressBarMaxWidth": 24
+    }
+  }
+}
+```
+
+See [docs/configuration.md](docs/configuration.md) for the full options reference.
+
 ## Documentation
 
 | Doc | Description |
@@ -54,6 +72,7 @@ Available /quests subcommands:
 | [Pattern](docs/pattern.md) | "How do I...?" recipes for common workflows |
 | [Quests](docs/quests.md) | What are quests? |
 | [Reference](docs/reference.md) | Complete tool and command schemas, types |
+| [Configuration](docs/configuration.md) | Settings, overrides, and examples |
 | [Architecture](docs/architecture.md) | Module map, data flow diagrams, design decisions |
 | [Changelog](CHANGELOG.md) | Version history |
 

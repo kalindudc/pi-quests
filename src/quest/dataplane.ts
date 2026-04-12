@@ -1,4 +1,5 @@
 import type { AgentToolResult, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import { DEFAULT_CONFIG, type ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import {
   formatAddResult,
@@ -53,8 +54,13 @@ export class QuestLog {
   private usedIds: Set<string> = new Set();
   private history: HistoryEntry[] = [];
 
-  private readonly ID_LENGTH = 2;
-  private readonly MAX_IDS = 16 ** this.ID_LENGTH;
+  private readonly ID_LENGTH: number;
+  private readonly MAX_IDS: number;
+
+  constructor(config: ResolvedConfig = DEFAULT_CONFIG) {
+    this.ID_LENGTH = config.ids.length;
+    this.MAX_IDS = 16 ** this.ID_LENGTH;
+  }
 
   private generateId(): string {
     if (this.usedIds.size >= this.MAX_IDS) {

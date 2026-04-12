@@ -1,6 +1,7 @@
 import type { UserMessage } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createQuestsHandler } from "./commands/handler.js";
+import { DEFAULT_CONFIG, getConfig, type ResolvedConfig } from "./config.js";
 import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "./prompts.js";
 import { QuestLog } from "./quest/dataplane.js";
 import { formatQuestList } from "./quest/formatters.js";
@@ -19,10 +20,23 @@ import { registerQuestTool } from "./tools/handler.js";
  * - Provide rollback support to restore a previous snapshot.
  */
 export default function (pi: ExtensionAPI): void {
-  const questLog = new QuestLog();
-  const tracker = new QuestUsageTracker();
+  let questLog = new QuestLog();
+  let tracker = new QuestUsageTracker(DEFAULT_CONFIG);
+  let config: ResolvedConfig = DEFAULT_CONFIG;
 
-  pi.on("session_start", async (_event, ctx) => questLog.reconstructFromSession(ctx));
+  pi.on("session_start", async (_event, ctx) => {
+    config = getConfig(ctx);
+    questLog = new QuestLog(config);
+    tracker = new QuestUsageTracker(config);
+    questLog.reconstructFromSession(ctx);
+
+    registerQuestTool(pi, questLog, config);
+
+    pi.registerCommand("quests", {
+      description: "Quest commands: /quests [help] to see usage",
+      handler: createQuestsHandler(pi, questLog, config),
+    });
+  });
   pi.on("session_tree", async (_event, ctx) => questLog.reconstructFromSession(ctx));
 
   pi.on("turn_start", async () => tracker.clearTurnNudge());
@@ -40,8 +54,7 @@ export default function (pi: ExtensionAPI): void {
     const activeQuestCount = questLog.getAll().filter((q) => !q.done).length;
     const nudge = tracker.getNudge(activeQuestCount, latestPrompt);
 
-    const fakeDoneRegex =
-      /\s[-–—]\s*(DONE|COMPLETED|FINISHED)$|\s[([](DONE|COMPLETED|FINISHED)[)\]]$/i;
+    const fakeDoneRegex = new RegExp(config.validation.fakeDonePattern, "i");
     const fakeDone = questLog.getAll().find((q) => !q.done && fakeDoneRegex.test(q.description));
     if (!nudge && !fakeDone) return undefined;
 
@@ -73,14 +86,6 @@ export default function (pi: ExtensionAPI): void {
     };
   });
 
-  registerQuestTool(pi, questLog);
-
   // Register custom message renderers
   pi.registerMessageRenderer("quest-changelog", questChangelogRenderer);
-
-  // Register the top-level /quests command dispatcher.
-  pi.registerCommand("quests", {
-    description: "Quest commands: /quests [help] to see usage",
-    handler: createQuestsHandler(pi, questLog),
-  });
 }

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import type { QuestAction, QuestLog } from "../quest/dataplane.js";
 import { QUEST_ACTIONS } from "../quest/types.js";
@@ -42,11 +43,11 @@ const commandActionBuilders: {
   [QUEST_ACTIONS.revert]: () => ({ type: QUEST_ACTIONS.revert }),
 };
 
-export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog) {
+export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config: ResolvedConfig) {
   return async function handler(args: string, ctx: ExtensionCommandContext): Promise<void> {
     logger.debug("quests:cmd", "handler", { args, hasUI: ctx.hasUI });
 
-    const parsed = parseQuestArgs(args);
+    const parsed = parseQuestArgs(args, config.ids.length);
     if ("error" in parsed) {
       logger.debug("quests:cmd", "handler-error", { error: parsed.error });
       ctx.ui.notify(parsed.error, "error");
@@ -96,7 +97,7 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog) {
         logger.debug("quests:cmd", "list-open-widget", { count: questLog.getAll().length });
         await ctx.ui.custom(
           (_, theme, __, done) =>
-            new QuestListWidget(questLog.getAll(), theme, () => done(undefined)),
+            new QuestListWidget(questLog.getAll(), theme, () => done(undefined), config),
         );
 
         logger.debug("quests:cmd", "list-widget-closed");

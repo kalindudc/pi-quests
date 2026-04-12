@@ -18,7 +18,7 @@ export type ParsedArgs =
 /**
  * Parse user input from the /quests command into structured arguments.
  */
-export function parseQuestArgs(args: string): ParsedArgs {
+export function parseQuestArgs(args: string, idLength = 2): ParsedArgs {
   logger.debug("quests:cmd", "parse-args", { args });
   const tokens = args.trim().split(/\s+/).filter(Boolean);
 
@@ -42,10 +42,10 @@ export function parseQuestArgs(args: string): ParsedArgs {
 
   // Quest actions with arguments
   if (command === QUEST_ACTIONS.add) return parseAddArgs(rest);
-  if (command === QUEST_ACTIONS.toggle) return parseIdAction(QUEST_ACTIONS.toggle, rest);
-  if (command === QUEST_ACTIONS.delete) return parseIdAction(QUEST_ACTIONS.delete, rest);
-  if (command === QUEST_ACTIONS.update) return parseUpdateArgs(rest);
-  if (command === QUEST_ACTIONS.reorder) return parseReorderArgs(rest);
+  if (command === QUEST_ACTIONS.toggle) return parseIdAction(QUEST_ACTIONS.toggle, rest, idLength);
+  if (command === QUEST_ACTIONS.delete) return parseIdAction(QUEST_ACTIONS.delete, rest, idLength);
+  if (command === QUEST_ACTIONS.update) return parseUpdateArgs(rest, idLength);
+  if (command === QUEST_ACTIONS.reorder) return parseReorderArgs(rest, idLength);
 
   return { error: `Unknown subcommand: ${command}. Use /quests help to see available commands.` };
 }
@@ -60,16 +60,19 @@ function parseAddArgs(tokens: string[]): ParsedArgs {
 function parseIdAction(
   action: typeof QUEST_ACTIONS.toggle | typeof QUEST_ACTIONS.delete,
   tokens: string[],
+  idLength: number,
 ): ParsedArgs {
   const id = tokens[0] ? tokens[0].toLowerCase() : "";
-  if (!/^[0-9a-f]{2}$/.test(id)) return { error: `Usage: /quests ${action} <id>` };
+  const pattern = new RegExp(`^[0-9a-f]{${idLength}}$`);
+  if (!pattern.test(id)) return { error: `Usage: /quests ${action} <id>` };
 
   return { action, id };
 }
 
-function parseUpdateArgs(tokens: string[]): ParsedArgs {
+function parseUpdateArgs(tokens: string[], idLength: number): ParsedArgs {
   const id = tokens[0] ? tokens[0].toLowerCase() : "";
-  if (!/^[0-9a-f]{2}$/.test(id)) return { error: "Usage: /quests update <id> <description>" };
+  const pattern = new RegExp(`^[0-9a-f]{${idLength}}$`);
+  if (!pattern.test(id)) return { error: "Usage: /quests update <id> <description>" };
 
   const description = tokens.slice(1).join(" ").trim();
   if (!description) return { error: "Usage: /quests update <id> <description>" };
@@ -83,11 +86,12 @@ function parseClearArgs(tokens: string[]): ParsedArgs {
   return { action: QUEST_ACTIONS.clear, all };
 }
 
-function parseReorderArgs(tokens: string[]): ParsedArgs {
+function parseReorderArgs(tokens: string[], idLength: number): ParsedArgs {
   const id = tokens[0] ? tokens[0].toLowerCase() : "";
   const targetId = tokens[1] ? tokens[1].toLowerCase() : "";
+  const pattern = new RegExp(`^[0-9a-f]{${idLength}}$`);
 
-  if (!/^[0-9a-f]{2}$/.test(id) || !/^[0-9a-f]{2}$/.test(targetId))
+  if (!pattern.test(id) || !pattern.test(targetId))
     return { error: "Usage: /quests reorder <id> <targetId>" };
 
   return { action: QUEST_ACTIONS.reorder, id, targetId };

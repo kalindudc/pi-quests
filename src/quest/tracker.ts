@@ -1,17 +1,4 @@
-export const COMPLEX_TASK_KEYWORDS = [
-  "implement",
-  "refactor",
-  "investigate",
-  "review",
-  "analyze",
-  "audit",
-  "plan",
-  "design",
-  "create",
-  "build",
-  "write",
-  "fix",
-] as const;
+import type { ResolvedConfig } from "../config.js";
 
 const ACKNOWLEDGEMENT =
   "ALWAYS acknowledge this reminder and create, update, or align on quests before making further tool calls.";
@@ -22,6 +9,8 @@ export class QuestUsageTracker {
   private hasEverUsedQuestTool = false;
   private lastQuestToolTime = 0;
   private nudgedThisTurn = false;
+
+  constructor(private readonly config: ResolvedConfig) {}
 
   onToolExecution(toolName: string): void {
     this.totalToolCalls++;
@@ -42,7 +31,7 @@ export class QuestUsageTracker {
     if (this.nudgedThisTurn) return undefined;
 
     // 1. Initialization nudge
-    if (this.totalToolCalls >= 3 && !this.hasEverUsedQuestTool) {
+    if (this.totalToolCalls >= this.config.nudges.toolCallThreshold && !this.hasEverUsedQuestTool) {
       this.nudgedThisTurn = true;
       return `QUEST REMINDER: You have made ${this.totalToolCalls} tool calls but have NEVER used the quest tool this session. USE the quest tool to initialize tracking and break your work into concrete steps. ${ACKNOWLEDGEMENT}`;
     }
@@ -57,22 +46,27 @@ export class QuestUsageTracker {
     if (
       this.hasEverUsedQuestTool &&
       this.lastQuestToolTime > 0 &&
-      this.consecutiveNonQuestToolCalls >= 3 &&
-      // 8 minutes without quest tool use
-      Date.now() - this.lastQuestToolTime >= 8 * 60 * 1000
+      this.consecutiveNonQuestToolCalls >= this.config.nudges.timeBasedToolCallThreshold &&
+      Date.now() - this.lastQuestToolTime >= this.config.nudges.hintIntervalMinutes * 60 * 1000
     ) {
       this.nudgedThisTurn = true;
       return `QUEST REMINDER: It has been a while since your last quest tool use and ${this.consecutiveNonQuestToolCalls} tools have been called since then. ALIGN on quest status before continuing. ${ACKNOWLEDGEMENT}`;
     }
 
     // 4. Zero-active sustained-work nudge
-    if (this.consecutiveNonQuestToolCalls >= 5 && activeQuestCount === 0) {
+    if (
+      this.consecutiveNonQuestToolCalls >= this.config.nudges.zeroActiveToolCallThreshold &&
+      activeQuestCount === 0
+    ) {
       this.nudgedThisTurn = true;
       return `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and there are 0 active quests. TRACK your work with specific, actionable quests. ${ACKNOWLEDGEMENT}`;
     }
 
     // 5. Stale-progress sustained-work nudge
-    if (this.consecutiveNonQuestToolCalls >= 10 && activeQuestCount > 0) {
+    if (
+      this.consecutiveNonQuestToolCalls >= this.config.nudges.staleProgressToolCallThreshold &&
+      activeQuestCount > 0
+    ) {
       this.nudgedThisTurn = true;
       return `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool despite having active quests. UPDATE your quest progress to reflect current status. ${ACKNOWLEDGEMENT}`;
     }
@@ -82,6 +76,6 @@ export class QuestUsageTracker {
 
   private isComplexPrompt(prompt: string): boolean {
     const lower = prompt.toLowerCase();
-    return COMPLEX_TASK_KEYWORDS.some((kw) => lower.includes(kw));
+    return this.config.nudges.complexTaskKeywords.some((kw) => lower.includes(kw));
   }
 }

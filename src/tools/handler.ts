@@ -1,13 +1,14 @@
 import type { AgentToolResult, ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import type { Static } from "@sinclair/typebox";
+import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "../prompts.js";
 import { makeToolResult, type QuestAction, type QuestLog } from "../quest/dataplane.js";
 import { QUEST_ACTIONS } from "../quest/types.js";
 import { renderQuestCall, renderQuestResult } from "../renderers/tools.js";
-import { QuestParams } from "./params.js";
+import { createQuestParams, type QuestParamsType } from "./params.js";
 
-type QuestToolParams = Static<typeof QuestParams>;
+type QuestToolParams = Static<QuestParamsType>;
 
 const toolHandlers: {
   [K in QuestToolParams["action"]]: (
@@ -83,7 +84,11 @@ export async function questToolExecute(
   return handler(questLog, params, toolCallId);
 }
 
-export function registerQuestTool(pi: ExtensionAPI, questLog: QuestLog): void {
+export function registerQuestTool(
+  pi: ExtensionAPI,
+  questLog: QuestLog,
+  config: ResolvedConfig,
+): void {
   logger.debug("quests:tool", "register");
   pi.registerTool({
     name: "quest",
@@ -92,7 +97,7 @@ export function registerQuestTool(pi: ExtensionAPI, questLog: QuestLog): void {
       "Manage the session quest log. Use this VERY frequently to track tasks, plans, and progress throughout the conversation.",
     promptSnippet: "Add, list, toggle, update, delete, clear, or revert quest items",
     promptGuidelines: [...QUEST_PROMPT_GATE, ...QUEST_PROMPT_REMINDER],
-    parameters: QuestParams,
+    parameters: createQuestParams(config.ids.length),
     execute: (toolCallId, params, _signal, _onUpdate, _ctx) =>
       questToolExecute(questLog, toolCallId, params),
     renderCall: renderQuestCall,

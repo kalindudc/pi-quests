@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createQuestsHandler } from "../../src/commands/handler.js";
+import { DEFAULT_CONFIG } from "../../src/config.js";
 import { QuestLog } from "../../src/quest/dataplane.js";
 import { getVersion } from "../../src/version.js";
 
@@ -35,7 +36,7 @@ describe("createQuestsHandler", () => {
   }
 
   function createHandler() {
-    return createQuestsHandler(createMockPi(), new QuestLog());
+    return createQuestsHandler(createMockPi(), new QuestLog(), DEFAULT_CONFIG);
   }
 
   it("shows version for 'version' subcommand", async () => {
@@ -48,7 +49,7 @@ describe("createQuestsHandler", () => {
   it("sends a quest-changelog message for 'changelog' subcommand", async () => {
     const pi = createMockPi();
     const ctx = createMockCtx();
-    const handler = createQuestsHandler(pi, new QuestLog());
+    const handler = createQuestsHandler(pi, new QuestLog(), DEFAULT_CONFIG);
     await handler("changelog", ctx);
     expect(pi.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
