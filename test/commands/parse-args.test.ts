@@ -36,7 +36,7 @@ describe("parseQuestArgs", () => {
   });
 
   it("parses toggle with id", () => {
-    expect(parseQuestArgs("toggle 3")).toEqual({ action: QUEST_ACTIONS.toggle, id: 3 });
+    expect(parseQuestArgs("toggle 03")).toEqual({ action: QUEST_ACTIONS.toggle, id: "03" });
   });
 
   it("returns error for toggle without id", () => {
@@ -52,9 +52,9 @@ describe("parseQuestArgs", () => {
   });
 
   it("parses update with id and description", () => {
-    expect(parseQuestArgs("update 3 New desc")).toEqual({
+    expect(parseQuestArgs("update 03 New desc")).toEqual({
       action: QUEST_ACTIONS.update,
-      id: 3,
+      id: "03",
       description: "New desc",
     });
   });
@@ -66,13 +66,13 @@ describe("parseQuestArgs", () => {
   });
 
   it("returns error for update without description", () => {
-    expect(parseQuestArgs("update 1")).toEqual({
+    expect(parseQuestArgs("update 01")).toEqual({
       error: "Usage: /quests update <id> <description>",
     });
   });
 
   it("parses delete with id", () => {
-    expect(parseQuestArgs("delete 3")).toEqual({ action: QUEST_ACTIONS.delete, id: 3 });
+    expect(parseQuestArgs("delete 03")).toEqual({ action: QUEST_ACTIONS.delete, id: "03" });
   });
 
   it("returns error for delete without id", () => {
@@ -90,14 +90,14 @@ describe("parseQuestArgs", () => {
   });
 
   it("parses reorder and clear variants", () => {
-    expect(parseQuestArgs("reorder 2 0")).toEqual({
+    expect(parseQuestArgs("reorder 02 01")).toEqual({
       action: QUEST_ACTIONS.reorder,
-      id: 2,
-      targetIndex: 0,
+      id: "02",
+      targetId: "01",
     });
     expect(parseQuestArgs("clear all")).toEqual({ action: QUEST_ACTIONS.clear, all: true });
     expect(parseQuestArgs("clear")).toEqual({ action: QUEST_ACTIONS.clear, all: false });
-    expect(parseQuestArgs("reorder")).toEqual({ error: "Usage: /quests reorder <id> <index>" });
+    expect(parseQuestArgs("reorder")).toEqual({ error: "Usage: /quests reorder <id> <targetId>" });
     expect(parseQuestArgs("clear invalid")).toEqual({ error: "Usage: /quests clear [all]" });
   });
 });

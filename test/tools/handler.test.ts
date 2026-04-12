@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { QuestLog } from "../../src/quest/dataplane.js";
 import { QUEST_ACTIONS } from "../../src/quest/types.js";
 import { questToolExecute, registerQuestTool } from "../../src/tools/handler.js";
@@ -7,6 +7,18 @@ import { questToolExecute, registerQuestTool } from "../../src/tools/handler.js"
 function getText(content: { type: "text"; text: string } | { type: "image" }): string | undefined {
   return content.type === "text" ? content.text : undefined;
 }
+
+let randomCall = 0;
+beforeEach(() => {
+  randomCall = 0;
+  vi.spyOn(Math, "random").mockImplementation(() => {
+    randomCall++;
+    return randomCall / 256;
+  });
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("questToolExecute", () => {
   function createLog() {
@@ -20,7 +32,7 @@ describe("questToolExecute", () => {
       descriptions: ["Test"],
     });
     expect(result.content[0]).toEqual(
-      expect.objectContaining({ text: expect.stringContaining("Added 1 quests") }),
+      expect.objectContaining({ text: expect.stringContaining("Added quest [01]: Test") }),
     );
   });
 
@@ -44,8 +56,8 @@ describe("questToolExecute", () => {
   it("toggles a quest", async () => {
     const log = createLog();
     log.add("A");
-    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.toggle, id: 1 });
-    expect(getText(result.content[0]!)).toContain("Quest #1 done");
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.toggle, id: "01" });
+    expect(getText(result.content[0]!)).toContain("Quest [01] done");
   });
 
   it("clears quests", async () => {
@@ -60,18 +72,18 @@ describe("questToolExecute", () => {
     log.add("Old");
     const result = await questToolExecute(log, "tc1", {
       action: QUEST_ACTIONS.update,
-      id: 1,
+      id: "01",
       description: "New",
     });
-    expect(getText(result.content[0]!)).toContain("Updated quest #1");
+    expect(getText(result.content[0]!)).toContain("Updated quest [01]");
     expect(log.getAll()[0]?.description).toBe("New");
   });
 
   it("deletes a quest", async () => {
     const log = createLog();
     log.add("Old");
-    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: 1 });
-    expect(getText(result.content[0]!)).toContain("Deleted quest #1");
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: "01" });
+    expect(getText(result.content[0]!)).toContain("Deleted quest [01]");
     expect(log.getAll()).toHaveLength(0);
   });
 
@@ -79,7 +91,7 @@ describe("questToolExecute", () => {
     const log = createLog();
     log.add("A");
     const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.revert });
-    expect(getText(result.content[0]!)).toContain("Reverted add quest #1");
+    expect(getText(result.content[0]!)).toContain("Reverted add quest [01]");
   });
 
   it("includes full quest list in details for add action", async () => {
@@ -96,7 +108,7 @@ describe("questToolExecute", () => {
   it("includes only affected quest in displayQuests for toggle", async () => {
     const log = createLog();
     log.add("A");
-    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.toggle, id: 1 });
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.toggle, id: "01" });
     const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
     expect(details.quests).toHaveLength(1);
     expect(details.displayQuests).toHaveLength(1);
@@ -108,7 +120,7 @@ describe("questToolExecute", () => {
     log.add("A");
     const result = await questToolExecute(log, "tc1", {
       action: QUEST_ACTIONS.update,
-      id: 1,
+      id: "01",
       description: "B",
     });
     const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
@@ -120,7 +132,7 @@ describe("questToolExecute", () => {
   it("includes only affected quest in displayQuests for delete", async () => {
     const log = createLog();
     log.add("A");
-    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: 1 });
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: "01" });
     const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
     expect(details.quests).toHaveLength(0);
     expect(details.displayQuests).toHaveLength(1);
@@ -142,10 +154,10 @@ describe("questToolExecute", () => {
     log.add("B");
     const result = await questToolExecute(log, "tc1", {
       action: QUEST_ACTIONS.reorder,
-      id: 2,
-      targetIndex: 0,
+      id: "02",
+      targetId: "01",
     });
-    expect(getText(result.content[0]!)).toContain("Reordered quest #1: B");
+    expect(getText(result.content[0]!)).toContain("Reordered quest [02]: B");
     expect(log.getAll()[0]!.description).toBe("B");
   });
 
@@ -153,7 +165,7 @@ describe("questToolExecute", () => {
     const log = createLog();
     log.add("A");
     log.add("B");
-    log.toggle(1);
+    log.toggle("01");
     const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.clear });
     expect(getText(result.content[0]!)).toContain("Cleared 1 completed quests");
     expect(log.getAll()).toHaveLength(1);

@@ -9,6 +9,7 @@ vi.mock("../../src/logger.js", () => ({ logger: { debug: vi.fn() } }));
 const mockTheme = {
   fg: (_name: string, text: string) => text,
   bold: (text: string) => text,
+  strikethrough: (text: string) => text,
 } as unknown as Theme;
 
 function getText(widget: Text): string {
@@ -37,26 +38,48 @@ describe("renderQuestCall", () => {
   });
 
   it("renders toggle action with id", () => {
-    const result = renderQuestCall({ action: QUEST_ACTIONS.toggle, id: 3 }, mockTheme, {});
+    const result = renderQuestCall({ action: QUEST_ACTIONS.toggle, id: "03" }, mockTheme, {});
     expect(getText(result)).toContain("quest toggle");
-    expect(getText(result)).toContain("#3");
+    expect(getText(result)).toContain("[03]");
   });
 
   it("renders revert action", () => {
     const result = renderQuestCall({ action: QUEST_ACTIONS.revert }, mockTheme, {});
     expect(getText(result)).toContain("quest revert");
   });
+
+  it("renders reorder action with targetId", () => {
+    const result = renderQuestCall(
+      { action: QUEST_ACTIONS.reorder, targetId: "01" },
+      mockTheme,
+      {},
+    );
+    expect(getText(result)).toContain("quest reorder");
+    expect(getText(result)).toContain("01");
+  });
+
+  it("renders clear action", () => {
+    const result = renderQuestCall({ action: QUEST_ACTIONS.clear, all: true }, mockTheme, {});
+    expect(getText(result)).toContain("quest clear");
+    expect(getText(result)).toContain("[all]");
+  });
+
+  it("renders clear action without all flag", () => {
+    const result = renderQuestCall({ action: QUEST_ACTIONS.clear, all: false }, mockTheme, {});
+    expect(getText(result)).toContain("quest clear");
+    expect(getText(result)).toContain("[done]");
+  });
 });
 
 describe("renderQuestResult", () => {
-  it("renders full quest list with positional numbers", () => {
+  it("renders full quest list with positional numbers and hex ids", () => {
     const result = renderQuestResult(
       {
         content: [{ type: "text", text: "" }],
         details: {
           quests: [
-            { id: 5, description: "Done quest", done: true },
-            { id: 10, description: "Pending quest", done: false },
+            { id: "05", description: "Done quest", done: true },
+            { id: "0a", description: "Pending quest", done: false },
           ],
         },
       },
@@ -65,22 +88,22 @@ describe("renderQuestResult", () => {
       {},
     );
     const text = getText(result);
-    expect(text).toContain("#1");
+    expect(text).toContain("#1   [05]");
     expect(text).toContain("Done quest");
-    expect(text).toContain("#2");
+    expect(text).toContain("#2   [0a]");
     expect(text).toContain("Pending quest");
   });
 
-  it("renders displayQuests with positional numbers from full list", () => {
+  it("renders displayQuests with positional numbers and hex ids from full list", () => {
     const result = renderQuestResult(
       {
         content: [{ type: "text", text: "" }],
         details: {
           quests: [
-            { id: 5, description: "Done quest", done: true },
-            { id: 10, description: "Pending quest", done: false },
+            { id: "05", description: "Done quest", done: true },
+            { id: "0a", description: "Pending quest", done: false },
           ],
-          displayQuests: [{ id: 10, description: "Pending quest", done: false }],
+          displayQuests: [{ id: "0a", description: "Pending quest", done: false }],
         },
       },
       { expanded: false, isPartial: false },
@@ -88,9 +111,9 @@ describe("renderQuestResult", () => {
       {},
     );
     const text = getText(result);
-    expect(text).not.toContain("#1");
+    expect(text).not.toContain("#1   [05]");
     expect(text).not.toContain("Done quest");
-    expect(text).toContain("#2");
+    expect(text).toContain("#2   [0a]");
     expect(text).toContain("Pending quest");
   });
 

@@ -17,14 +17,17 @@ export const QuestParams = Type.Object({
     }),
   ),
   id: Type.Optional(
-    Type.Number({
-      description: "Quest ID (required for toggle, update, delete, reorder actions)",
+    Type.String({
+      pattern: "^[0-9a-f]{2}$",
+      description:
+        "Quest ID (required for toggle, update, delete, reorder actions). ALWAYS use the 2-digit hex ID shown in brackets (e.g. 0a, ff), never the positional number.",
     }),
   ),
-  targetIndex: Type.Optional(
-    Type.Number({
+  targetId: Type.Optional(
+    Type.String({
+      pattern: "^[0-9a-f]{2}$",
       description:
-        "Target index for reorder action (0-based array index). If moving to the 3rd slot in the list, use 2.",
+        "Target quest ID for reorder action. The quest will be moved to just before the target quest.",
     }),
   ),
   all: Type.Optional(

@@ -37,7 +37,7 @@ const commandActionBuilders: {
   [QUEST_ACTIONS.reorder]: (p) => ({
     type: QUEST_ACTIONS.reorder,
     id: p.id,
-    targetIndex: p.targetIndex,
+    targetId: p.targetId,
   }),
   [QUEST_ACTIONS.revert]: () => ({ type: QUEST_ACTIONS.revert }),
 };
@@ -126,7 +126,7 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog) {
         lines.push("  toggle <id>        - Toggle quest completion");
         lines.push("  delete <id>        - Delete a quest");
         lines.push("  update <id> <desc> - Update a quest description");
-        lines.push("  reorder <id> <idx> - Reorder a quest to index");
+        lines.push("  reorder <id> <targetId> - Reorder a quest before the target quest");
         lines.push("  revert             - Revert the last quest change");
         lines.push("  clear [all]        - Clear completed quests, or optionally all quests");
         lines.push("  version            - Show version");

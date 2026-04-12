@@ -3,6 +3,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createQuestsHandler } from "./commands/handler.js";
 import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "./prompts.js";
 import { QuestLog } from "./quest/dataplane.js";
+import { formatQuestList } from "./quest/formatters.js";
 import { QuestUsageTracker } from "./quest/tracker.js";
 import { questChangelogRenderer } from "./renderers/changelog.js";
 import { registerQuestTool } from "./tools/handler.js";
@@ -46,7 +47,7 @@ export default function (pi: ExtensionAPI): void {
 
     let content = nudge ?? "";
     if (fakeDone) {
-      content += `\nQUEST REMINDER: Quest #${fakeDone.id} has a completion marker appended to its description but is not toggled done. Use the toggle action to mark it done. NEVER append completion markers to descriptions via the update action.`;
+      content += `\nQUEST REMINDER: Quest [${fakeDone.id}] has a completion marker appended to its description but is not toggled done. Use the toggle action to mark it done. NEVER append completion markers to descriptions via the update action.`;
     }
 
     const reminder: UserMessage = {
@@ -62,9 +63,7 @@ export default function (pi: ExtensionAPI): void {
     let reminder = QUEST_PROMPT_REMINDER.join("\n");
     if (quests.length > 0) {
       const remaining = quests.filter((q) => !q.done).length;
-      const list = quests
-        .map((q) => `#${q.id} [${q.done ? "x" : " "}] ${q.description}`)
-        .join("\n");
+      const list = formatQuestList(quests);
 
       reminder += `\n\nActive quests (${remaining}/${quests.length}):\n${list}`;
     }

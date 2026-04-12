@@ -8,8 +8,9 @@ export const QUEST_PROMPT_REMINDER = [
   "ALWAYS use the toggle action to mark a quest done. NEVER use the update action to append 'DONE', '- DONE', or any completion marker to a quest description.",
   "As work evolves, use the reorder action to reflect changes in priority or sequencing.",
   "Before delegating to a minion, add a quest for the delegated task.",
-  "For reorder, targetIndex is 0-based (array index), not a 1-based position. If the user says 'move quest to position 5', use targetIndex 4.",
+  "For reorder, provide the targetId (the 2-digit hex ID of the quest to insert before).",
   "If you are unsure what to do next, use the list action to check active quests.",
+  "Always use the 2-digit hex ID shown in brackets (e.g. 0a, ff) for toggle, update, delete, and reorder actions.",
 ] as const;
 
 export const QUEST_PROMPT_GATE =

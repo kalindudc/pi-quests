@@ -4,11 +4,11 @@ import { QUEST_ACTIONS } from "../quest/types.js";
 export type ParsedArgs =
   | { action: typeof QUEST_ACTIONS.add; descriptions: string[] }
   | { action: typeof QUEST_ACTIONS.list }
-  | { action: typeof QUEST_ACTIONS.toggle; id: number }
-  | { action: typeof QUEST_ACTIONS.update; id: number; description: string }
-  | { action: typeof QUEST_ACTIONS.delete; id: number }
+  | { action: typeof QUEST_ACTIONS.toggle; id: string }
+  | { action: typeof QUEST_ACTIONS.update; id: string; description: string }
+  | { action: typeof QUEST_ACTIONS.delete; id: string }
   | { action: typeof QUEST_ACTIONS.clear; all?: boolean }
-  | { action: typeof QUEST_ACTIONS.reorder; id: number; targetIndex: number }
+  | { action: typeof QUEST_ACTIONS.reorder; id: string; targetId: string }
   | { action: typeof QUEST_ACTIONS.revert }
   | { action: "help" }
   | { action: "version" }
@@ -61,17 +61,15 @@ function parseIdAction(
   action: typeof QUEST_ACTIONS.toggle | typeof QUEST_ACTIONS.delete,
   tokens: string[],
 ): ParsedArgs {
-  const idStr = tokens[0];
-  const id = idStr ? Number(idStr) : NaN;
-  if (Number.isNaN(id)) return { error: `Usage: /quests ${action} <id>` };
+  const id = tokens[0] ? tokens[0].toLowerCase() : "";
+  if (!/^[0-9a-f]{2}$/.test(id)) return { error: `Usage: /quests ${action} <id>` };
 
   return { action, id };
 }
 
 function parseUpdateArgs(tokens: string[]): ParsedArgs {
-  const idStr = tokens[0];
-  const id = idStr ? Number(idStr) : NaN;
-  if (Number.isNaN(id)) return { error: "Usage: /quests update <id> <description>" };
+  const id = tokens[0] ? tokens[0].toLowerCase() : "";
+  if (!/^[0-9a-f]{2}$/.test(id)) return { error: "Usage: /quests update <id> <description>" };
 
   const description = tokens.slice(1).join(" ").trim();
   if (!description) return { error: "Usage: /quests update <id> <description>" };
@@ -86,9 +84,11 @@ function parseClearArgs(tokens: string[]): ParsedArgs {
 }
 
 function parseReorderArgs(tokens: string[]): ParsedArgs {
-  const id = Number(tokens[0]);
-  const targetIndex = Number(tokens[1]);
-  if (Number.isNaN(id) || Number.isNaN(targetIndex))
-    return { error: "Usage: /quests reorder <id> <index>" };
-  return { action: QUEST_ACTIONS.reorder, id, targetIndex };
+  const id = tokens[0] ? tokens[0].toLowerCase() : "";
+  const targetId = tokens[1] ? tokens[1].toLowerCase() : "";
+
+  if (!/^[0-9a-f]{2}$/.test(id) || !/^[0-9a-f]{2}$/.test(targetId))
+    return { error: "Usage: /quests reorder <id> <targetId>" };
+
+  return { action: QUEST_ACTIONS.reorder, id, targetId };
 }

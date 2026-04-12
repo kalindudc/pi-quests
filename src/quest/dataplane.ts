@@ -1,6 +1,7 @@
 import type { AgentToolResult, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { logger } from "../logger.js";
 import {
+  formatAddResult,
   formatBatchAddResult,
   formatDeleteResult,
   formatNotFound,
@@ -11,27 +12,32 @@ import {
 import { QUEST_ACTIONS, type Quest } from "./types.js";
 
 export type HistoryEntry =
-  | { type: typeof QUEST_ACTIONS.add; id: number }
-  | { type: typeof QUEST_ACTIONS.toggle; id: number }
-  | { type: typeof QUEST_ACTIONS.update; id: number; previousDescription: string }
+  | { type: typeof QUEST_ACTIONS.add; id: string }
+  | { type: typeof QUEST_ACTIONS.toggle; id: string }
+  | { type: typeof QUEST_ACTIONS.update; id: string; previousDescription: string }
   | { type: typeof QUEST_ACTIONS.delete; quest: Quest; index: number }
   | {
       type: typeof QUEST_ACTIONS.clear;
       previousQuests: Quest[];
-      previousNextId: number;
       all: false;
     }
-  | { type: typeof QUEST_ACTIONS.clear; quests: Quest[]; nextId: number; all: true }
-  | { type: typeof QUEST_ACTIONS.reorder; quest: Quest; oldIndex: number; previousIds: number[] };
+  | { type: typeof QUEST_ACTIONS.clear; quests: Quest[]; all: true }
+  | {
+      type: typeof QUEST_ACTIONS.reorder;
+      quest: Quest;
+      oldIndex: number;
+      previousIds: string[];
+      targetId: string;
+    };
 
 export type QuestAction =
   | { type: typeof QUEST_ACTIONS.add; descriptions?: string[] }
   | { type: typeof QUEST_ACTIONS.list }
-  | { type: typeof QUEST_ACTIONS.toggle; id?: number }
-  | { type: typeof QUEST_ACTIONS.update; id?: number; description?: string }
-  | { type: typeof QUEST_ACTIONS.delete; id?: number }
+  | { type: typeof QUEST_ACTIONS.toggle; id?: string }
+  | { type: typeof QUEST_ACTIONS.update; id?: string; description?: string }
+  | { type: typeof QUEST_ACTIONS.delete; id?: string }
   | { type: typeof QUEST_ACTIONS.clear; all?: boolean }
-  | { type: typeof QUEST_ACTIONS.reorder; id?: number; targetIndex?: number }
+  | { type: typeof QUEST_ACTIONS.reorder; id?: string; targetId?: string }
   | { type: typeof QUEST_ACTIONS.revert };
 
 export type QuestOperationResult = { success: boolean; message: string; quest?: Quest };
@@ -44,8 +50,29 @@ export type QuestOperationResult = { success: boolean; message: string; quest?: 
  */
 export class QuestLog {
   private quests: Quest[] = [];
-  private nextId = 1;
+  private usedIds: Set<string> = new Set();
   private history: HistoryEntry[] = [];
+
+  private readonly ID_LENGTH = 2;
+  private readonly MAX_IDS = 16 ** this.ID_LENGTH;
+
+  private generateId(): string {
+    if (this.usedIds.size >= this.MAX_IDS) {
+      logger.debug("quests:state", "generate-id-exhausted", { usedIds: this.usedIds.size });
+      throw new Error("No available quest IDs. Clear done or all quests to free up IDs.");
+    }
+
+    let id: string;
+    do {
+      id = Math.floor(Math.random() * this.MAX_IDS)
+        .toString(16)
+        .padStart(this.ID_LENGTH, "0")
+        .toLowerCase();
+    } while (this.usedIds.has(id));
+
+    this.usedIds.add(id);
+    return id;
+  }
   private undoHandlers: {
     [K in HistoryEntry["type"]]: (entry: Extract<HistoryEntry, { type: K }>) => {
       success: boolean;
@@ -54,12 +81,10 @@ export class QuestLog {
   } = {
     [QUEST_ACTIONS.add]: (entry) => {
       this.quests = this.quests.filter((q) => q.id !== entry.id);
-
-      const maxId = this.quests.reduce((max, q) => Math.max(max, q.id), 0);
-      this.nextId = Math.max(maxId + 1, entry.id);
+      this.usedIds.delete(entry.id);
 
       logger.debug("quests:state", "revert-add", { id: entry.id, total: this.quests.length });
-      return { success: true, message: `Reverted add quest #${entry.id}` };
+      return { success: true, message: `Reverted add quest [${entry.id}]` };
     },
     [QUEST_ACTIONS.toggle]: (entry) => {
       const quest = this.quests.find((q) => q.id === entry.id);
@@ -67,38 +92,39 @@ export class QuestLog {
       if (quest) {
         quest.done = !quest.done;
         logger.debug("quests:state", "revert-toggle", { id: entry.id, done: quest.done });
-        return { success: true, message: `Reverted toggle for quest #${entry.id}` };
+        return { success: true, message: `Reverted toggle for quest [${entry.id}]` };
       }
 
       logger.debug("quests:state", "revert-toggle-not-found", { id: entry.id });
-      return { success: false, message: `Quest #${entry.id} not found` };
+      return { success: false, message: `Quest [${entry.id}] not found` };
     },
     [QUEST_ACTIONS.update]: (entry) => {
       const quest = this.quests.find((q) => q.id === entry.id);
       if (quest) {
         quest.description = entry.previousDescription;
         logger.debug("quests:state", "revert-update", { id: entry.id });
-        return { success: true, message: `Reverted update for quest #${entry.id}` };
+        return { success: true, message: `Reverted update for quest [${entry.id}]` };
       }
 
       logger.debug("quests:state", "revert-update-not-found", { id: entry.id });
-      return { success: false, message: `Quest #${entry.id} not found` };
+      return { success: false, message: `Quest [${entry.id}] not found` };
     },
     [QUEST_ACTIONS.delete]: (entry) => {
       this.quests.splice(entry.index, 0, entry.quest);
+      this.usedIds.add(entry.quest.id);
 
       logger.debug("quests:state", "revert-delete", {
         id: entry.quest.id,
         index: entry.index,
         total: this.quests.length,
       });
-      return { success: true, message: `Reverted delete for quest #${entry.quest.id}` };
+      return { success: true, message: `Reverted delete for quest [${entry.quest.id}]` };
     },
     [QUEST_ACTIONS.clear]: (entry) => {
       if ("previousQuests" in entry) {
         const restoredCount = entry.previousQuests.length - this.quests.length;
         this.quests = [...entry.previousQuests];
-        this.nextId = entry.previousNextId;
+        this.usedIds = new Set(this.quests.map((q) => q.id));
 
         return {
           success: true,
@@ -107,7 +133,7 @@ export class QuestLog {
       }
 
       this.quests = [...entry.quests];
-      this.nextId = entry.nextId;
+      this.usedIds = new Set(this.quests.map((q) => q.id));
 
       return { success: true, message: `Reverted clear (${entry.quests.length} quests restored)` };
     },
@@ -121,8 +147,7 @@ export class QuestLog {
         this.quests[i].id = entry.previousIds[i];
       }
 
-      this.nextId = Math.max(...entry.previousIds, 0) + 1;
-      return { success: true, message: `Reverted reorder for quest #${entry.quest.id}` };
+      return { success: true, message: `Reverted reorder for quest [${entry.quest.id}]` };
     },
   };
 
@@ -130,15 +155,14 @@ export class QuestLog {
     return [...this.quests];
   }
 
-  getNextId(): number {
-    return this.nextId;
+  getUsedIds(): string[] {
+    return Array.from(this.usedIds);
   }
 
-  add(description: string, additionalContext?: string): Quest {
+  add(description: string): Quest {
     const quest: Quest = {
-      id: this.nextId++,
+      id: this.generateId(),
       description,
-      additionalContext,
       done: false,
       createdAt: Date.now(),
     };
@@ -154,7 +178,7 @@ export class QuestLog {
     return quest;
   }
 
-  toggle(id: number): Quest | undefined {
+  toggle(id: string): Quest | undefined {
     const quest = this.quests.find((q) => q.id === id);
     if (!quest) {
       logger.debug("quests:state", "toggle-not-found", { id });
@@ -172,7 +196,7 @@ export class QuestLog {
     return quest;
   }
 
-  update(id: number, description: string): Quest | undefined {
+  update(id: string, description: string): Quest | undefined {
     const quest = this.quests.find((q) => q.id === id);
     if (!quest) {
       logger.debug("quests:state", "update-not-found", { id });
@@ -190,7 +214,7 @@ export class QuestLog {
     return quest;
   }
 
-  delete(id: number): Quest | undefined {
+  delete(id: string): Quest | undefined {
     const index = this.quests.findIndex((q) => q.id === id);
     if (index === -1) {
       logger.debug("quests:state", "delete-not-found", { id });
@@ -198,6 +222,7 @@ export class QuestLog {
     }
 
     const [quest] = this.quests.splice(index, 1);
+    this.usedIds.delete(quest.id);
     this.history.push({ type: QUEST_ACTIONS.delete, quest, index });
 
     logger.debug("quests:state", QUEST_ACTIONS.delete, { id, index, total: this.quests.length });
@@ -207,17 +232,14 @@ export class QuestLog {
   clear(all = false): number {
     if (!all) {
       const done = this.quests.filter((q) => q.done);
-      const previousQuests = this.quests.map((q) => ({ ...q }));
-      const previousNextId = this.nextId;
-      this.quests = this.quests.filter((q) => !q.done);
-      for (let i = 0; i < this.quests.length; i++) {
-        this.quests[i].id = i + 1;
+      const previousQuests = [...this.quests];
+      for (const q of done) {
+        this.usedIds.delete(q.id);
       }
-      this.nextId = this.quests.length + 1;
+      this.quests = this.quests.filter((q) => !q.done);
       this.history.push({
         type: QUEST_ACTIONS.clear,
         previousQuests,
-        previousNextId,
         all: false,
       });
       logger.debug("quests:state", QUEST_ACTIONS.clear, { count: done.length, all });
@@ -227,34 +249,44 @@ export class QuestLog {
     this.history.push({
       type: QUEST_ACTIONS.clear,
       quests: [...this.quests],
-      nextId: this.nextId,
       all: true,
     });
     this.quests = [];
-    this.nextId = 1;
+    this.usedIds.clear();
     logger.debug("quests:state", QUEST_ACTIONS.clear, { count, all });
     return count;
   }
 
-  reorder(id: number, targetIndex: number): Quest | undefined {
+  reorder(id: string, targetId: string): Quest | undefined {
     const idx = this.quests.findIndex((q) => q.id === id);
     if (idx === -1) {
       logger.debug("quests:state", "reorder-not-found", { id });
       return undefined;
     }
 
-    const previousIds = this.quests.map((q) => q.id);
-    const [quest] = this.quests.splice(idx, 1);
-    this.quests.splice(targetIndex, 0, quest);
-    for (let i = 0; i < this.quests.length; i++) {
-      this.quests[i].id = i + 1;
+    const targetIdx = this.quests.findIndex((q) => q.id === targetId);
+    if (targetIdx === -1) {
+      logger.debug("quests:state", "reorder-target-not-found", { id, targetId });
+      return undefined;
     }
 
-    this.nextId = this.quests.length + 1;
-    this.history.push({ type: QUEST_ACTIONS.reorder, quest, oldIndex: idx, previousIds });
+    if (idx === targetIdx) {
+      return this.quests[idx];
+    }
+
+    const previousIds = this.quests.map((q) => q.id);
+    const [quest] = this.quests.splice(idx, 1);
+
+    let insertIndex = targetIdx;
+    if (idx < targetIdx) {
+      insertIndex = targetIdx - 1;
+    }
+
+    this.quests.splice(insertIndex, 0, quest);
+    this.history.push({ type: QUEST_ACTIONS.reorder, quest, oldIndex: idx, previousIds, targetId });
     logger.debug("quests:state", QUEST_ACTIONS.reorder, {
       id: quest.id,
-      targetIndex,
+      targetId,
       total: this.quests.length,
     });
 
@@ -293,13 +325,33 @@ export class QuestLog {
               message: "Error: all descriptions in a batch must be non-empty",
             };
           }
-          const added: { id: number; description: string }[] = [];
-          for (const desc of action.descriptions) {
-            const q = this.add(desc);
-            added.push({ id: q.id, description: q.description });
-          }
+          if (action.descriptions.length === 1) {
+            try {
+              const [firstDesc] = action.descriptions;
+              const q = this.add(firstDesc);
 
-          return { success: true, message: formatBatchAddResult(added) };
+              return { success: true, message: formatAddResult(q) };
+            } catch (err) {
+              return {
+                success: false,
+                message: `Error: ${err instanceof Error ? err.message : String(err)}`,
+              };
+            }
+          }
+          try {
+            const added: { id: string; description: string }[] = [];
+            for (const desc of action.descriptions) {
+              const q = this.add(desc);
+              added.push({ id: q.id, description: q.description });
+            }
+
+            return { success: true, message: formatBatchAddResult(added) };
+          } catch (err) {
+            return {
+              success: false,
+              message: `Error: ${err instanceof Error ? err.message : String(err)}`,
+            };
+          }
         }
         return {
           success: false,
@@ -327,7 +379,7 @@ export class QuestLog {
           return { success: false, message: "Error: id is required for update action" };
         }
 
-        if (!action.description) {
+        if (!action.description || action.description.trim().length === 0) {
           return { success: false, message: "Error: description is required for update action" };
         }
 
@@ -362,13 +414,13 @@ export class QuestLog {
         if (action.id === undefined)
           return { success: false, message: "Error: id is required for reorder action" };
 
-        if (action.targetIndex === undefined)
-          return { success: false, message: "Error: targetIndex is required for reorder action" };
+        if (action.targetId === undefined)
+          return { success: false, message: "Error: targetId is required for reorder action" };
 
-        const q = this.reorder(action.id, action.targetIndex);
+        const q = this.reorder(action.id, action.targetId);
         if (!q) return { success: false, message: formatNotFound(action.id) };
 
-        return { success: true, message: `Reordered quest #${q.id}: ${q.description}`, quest: q };
+        return { success: true, message: `Reordered quest [${q.id}]: ${q.description}`, quest: q };
       }
       case QUEST_ACTIONS.revert: {
         return this.revert();
@@ -398,15 +450,14 @@ export class QuestLog {
 
     if (lastState) {
       const quests = lastState.quests;
-      const nextId = lastState.nextId;
       const questCount = Array.isArray(quests) ? quests.length : 0;
 
       this.quests = Array.isArray(quests) ? [...(quests as Quest[])] : [];
-      this.nextId = typeof nextId === "number" ? nextId : 1;
-      logger.debug("quests:state", "reconstruct", { toolResults, questCount, nextId: this.nextId });
+      this.usedIds = new Set(this.quests.map((q) => q.id));
+      logger.debug("quests:state", "reconstruct", { toolResults, questCount });
     } else {
       this.quests = [];
-      this.nextId = 1;
+      this.usedIds.clear();
       logger.debug("quests:state", "reconstruct-empty", { toolResults });
     }
 
@@ -423,7 +474,7 @@ export function makeToolResult(
     content: [{ type: "text", text }],
     details: {
       quests: questLog.getAll(),
-      nextId: questLog.getNextId(),
+      usedIds: questLog.getUsedIds(),
       displayQuests,
     },
   };

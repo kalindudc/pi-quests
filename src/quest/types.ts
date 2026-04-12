@@ -27,9 +27,8 @@ export const QUEST_ACTION_VALUES = [
 export type QuestActionType = (typeof QUEST_ACTION_VALUES)[number];
 
 export interface Quest {
-  id: number;
+  id: string;
   description: string;
-  additionalContext?: string;
   done: boolean;
   createdAt: number;
 }

@@ -41,8 +41,7 @@ describe("extension entry point", () => {
           role: "toolResult",
           toolName: "quest",
           details: {
-            quests: [{ id: 1, description: "Test task", done: false, createdAt: 1 }],
-            nextId: 2,
+            quests: [{ id: "01", description: "Test task", done: false, createdAt: 1 }],
           },
         },
       },

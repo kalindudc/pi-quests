@@ -45,7 +45,7 @@ const toolHandlers: {
     return runTool(questLog, toolCallId, {
       type: QUEST_ACTIONS.reorder,
       id: params.id,
-      targetIndex: params.targetIndex,
+      targetId: params.targetId,
     });
   },
   [QUEST_ACTIONS.revert](questLog, _params, toolCallId) {

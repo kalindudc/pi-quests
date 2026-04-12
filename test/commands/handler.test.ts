@@ -1,9 +1,21 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createQuestsHandler } from "../../src/commands/handler.js";
 import { QuestLog } from "../../src/quest/dataplane.js";
 import { getVersion } from "../../src/version.js";
 
 vi.mock("../../src/logger.js", () => ({ logger: { debug: vi.fn() } }));
+
+let randomCall = 0;
+beforeEach(() => {
+  randomCall = 0;
+  vi.spyOn(Math, "random").mockImplementation(() => {
+    randomCall++;
+    return randomCall / 256;
+  });
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("createQuestsHandler", () => {
   function createMockPi() {
@@ -70,7 +82,7 @@ describe("createQuestsHandler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add Test quest", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Added 1 quests:\n#1: Test quest", "info");
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Added quest [01]: Test quest", "info");
   });
 
   it("lists quests with custom UI", async () => {
@@ -93,54 +105,54 @@ describe("createQuestsHandler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add Toggle me", ctx);
-    await handler("toggle 1", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest #1 done", "info");
-    await handler("toggle 1", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest #1 undone", "info");
+    await handler("toggle 01", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [01] done", "info");
+    await handler("toggle 01", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [01] undone", "info");
   });
 
   it("shows error when toggling nonexistent quest", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
-    await handler("toggle 999", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest #999 not found", "error");
+    await handler("toggle ff", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [ff] not found", "error");
   });
 
   it("updates a quest", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add Old desc", ctx);
-    await handler("update 1 New desc", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Updated quest #1: New desc", "info");
+    await handler("update 01 New desc", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Updated quest [01]: New desc", "info");
   });
 
   it("shows error when updating nonexistent quest", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
-    await handler("update 999 Missing", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest #999 not found", "error");
+    await handler("update ff Missing", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [ff] not found", "error");
   });
 
   it("deletes a quest", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add Delete me", ctx);
-    await handler("delete 1", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Deleted quest #1: Delete me", "info");
+    await handler("delete 01", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Deleted quest [01]: Delete me", "info");
   });
 
   it("shows error when deleting nonexistent quest", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
-    await handler("delete 999", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest #999 not found", "error");
+    await handler("delete ff", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [ff] not found", "error");
   });
 
   it("clears quests", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add A", ctx);
-    await handler("toggle 1", ctx);
+    await handler("toggle 01", ctx);
     await handler("clear", ctx);
     expect(ctx.ui.notify).toHaveBeenCalledWith("Cleared 1 completed quests", "info");
   });
@@ -175,8 +187,8 @@ describe("createQuestsHandler", () => {
     const handler = createHandler();
     await handler("add A", ctx);
     await handler("add B", ctx);
-    await handler("reorder 2 0", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Reordered quest #1: B", "info");
+    await handler("reorder 02 01", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Reordered quest [02]: B", "info");
   });
 
   it("clears all via command with all arg", async () => {

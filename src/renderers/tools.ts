@@ -1,18 +1,23 @@
 import type { AgentToolResult, Theme } from "@mariozechner/pi-coding-agent";
-import { Text } from "@mariozechner/pi-tui";
+import { Text, visibleWidth } from "@mariozechner/pi-tui";
 import { logger } from "../logger.js";
 import { QUEST_ACTIONS } from "../quest/types.js";
 
 type QuestArgs = {
   action: string;
   descriptions?: string[];
-  id?: number;
+  targetId?: string;
+  id?: string;
+  all?: boolean;
 };
 
 export function renderQuestCall(args: QuestArgs, theme: Theme, _context: unknown): Text {
   const id = "id" in args ? args.id : undefined;
   logger.debug("quests:tool", "renderCall", { action: args.action, id });
-  const actionText = theme.fg("toolTitle", theme.bold("quest ")) + theme.fg("accent", args.action);
+  const actionText =
+    theme.fg("toolTitle", theme.bold("quest ")) +
+    theme.fg("accent", args.action) +
+    theme.fg("muted", args.targetId ? ` ${args.targetId}` : "");
 
   if (args.action === QUEST_ACTIONS.add && args.descriptions && args.descriptions.length > 0) {
     const n = args.descriptions.length;
@@ -29,7 +34,11 @@ export function renderQuestCall(args: QuestArgs, theme: Theme, _context: unknown
       args.action === QUEST_ACTIONS.delete) &&
     args.id !== undefined
   ) {
-    return new Text(`${actionText} ${theme.fg("muted", `#${args.id}`)}`, 0, 0);
+    return new Text(`${actionText} ${theme.fg("muted", `[${args.id}]`)}`, 0, 0);
+  }
+
+  if (args.action === QUEST_ACTIONS.clear) {
+    return new Text(`${actionText} ${theme.fg("muted", `[${args.all ? "all" : "done"}]`)}`, 0, 0);
   }
 
   return new Text(actionText, 0, 0);
@@ -47,18 +56,24 @@ export function renderQuestResult(
   });
   const details = result.details as Record<string, unknown> | undefined;
   const allQuests =
-    (details?.quests as Array<{ id: number; description: string; done: boolean }> | undefined) ??
+    (details?.quests as Array<{ id: string; description: string; done: boolean }> | undefined) ??
     [];
   const questsToRender = (details?.displayQuests ?? details?.quests) as
-    | Array<{ id: number; description: string; done: boolean }>
+    | Array<{ id: string; description: string; done: boolean }>
     | undefined;
 
   if (Array.isArray(questsToRender) && questsToRender.length > 0) {
     const lines = questsToRender.map((q) => {
+      const themeKey = q.done ? "dim" : "text";
       const pos = allQuests.findIndex((x) => x.id === q.id) + 1 || 1;
-      const marker = q.done ? theme.fg("success", "✓") : theme.fg("dim", "○");
+      const marker = q.done ? theme.fg(themeKey, "✓") : theme.fg("dim", "○");
+      const idSpacing = " ".repeat(3 - visibleWidth(`${pos}`));
+      const idStr = `${theme.fg(themeKey, `#${pos}`)}${idSpacing} ${theme.fg("muted", `[${q.id}]`)}`;
+      const desc = q.done
+        ? theme.fg(themeKey, theme.strikethrough(q.description))
+        : theme.fg(themeKey, q.description);
 
-      return `${marker} ${theme.fg("text", `#${pos}`)} ${theme.fg("muted", q.description)}`;
+      return `${marker} ${idStr} ${desc}`;
     });
 
     return new Text(lines.join("\n"), 0, 0);

@@ -1,11 +1,23 @@
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createQuestsHandler } from "../src/commands/handler.js";
 import { QuestLog } from "../src/quest/dataplane.js";
 import { QUEST_ACTIONS } from "../src/quest/types.js";
 import { questToolExecute } from "../src/tools/handler.js";
 
 vi.mock("../src/logger.js", () => ({ logger: { debug: vi.fn() } }));
+
+let randomCall = 0;
+beforeEach(() => {
+  randomCall = 0;
+  vi.spyOn(Math, "random").mockImplementation(() => {
+    randomCall++;
+    return randomCall / 256;
+  });
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function createMockCtx() {
   return {
@@ -34,7 +46,7 @@ describe("quest behavior", () => {
       await handler("add Test quest", ctx);
       expect(log.getAll()).toHaveLength(1);
       expect(log.getAll()[0]!.description).toBe("Test quest");
-      expect(ctx.ui.notify).toHaveBeenCalledWith("Added 1 quests:\n#1: Test quest", "info");
+      expect(ctx.ui.notify).toHaveBeenCalledWith("Added quest [01]: Test quest", "info");
 
       await handler("list", ctx);
       expect(ctx.ui.custom).toHaveBeenCalled();
@@ -46,9 +58,9 @@ describe("quest behavior", () => {
       const ctx = createMockCtx();
 
       await handler("add Toggle me", ctx);
-      await handler("toggle 1", ctx);
+      await handler("toggle 01", ctx);
       expect(log.getAll()[0]!.done).toBe(true);
-      expect(ctx.ui.notify).toHaveBeenCalledWith("Quest #1 done", "info");
+      expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [01] done", "info");
 
       await handler("revert", ctx);
       expect(log.getAll()[0]!.done).toBe(false);
@@ -63,8 +75,7 @@ describe("quest behavior", () => {
             role: "toolResult",
             toolName: "quest",
             details: {
-              quests: [{ id: 1, description: "Restored", done: false, createdAt: 1 }],
-              nextId: 2,
+              quests: [{ id: "01", description: "Restored", done: false, createdAt: 1 }],
             },
           },
         },
@@ -78,7 +89,7 @@ describe("quest behavior", () => {
       expect(log.getAll()).toHaveLength(1);
 
       const handler = createCommandHandler(log);
-      await handler("toggle 1", ctx);
+      await handler("toggle 01", ctx);
       expect(log.getAll()[0]!.done).toBe(true);
     });
   });
@@ -94,10 +105,10 @@ describe("quest behavior", () => {
 
       const result = await questToolExecute(log, "tc2", {
         action: QUEST_ACTIONS.toggle,
-        id: 1,
+        id: "01",
       });
       expect(log.getAll()[0]!.done).toBe(true);
-      expect(getText(result.content[0]!)).toContain("Quest #1 done");
+      expect(getText(result.content[0]!)).toContain("Quest [01] done");
     });
 
     it("batch add then clear restores correctly via revert", async () => {

@@ -114,7 +114,8 @@ export class QuestListWidget {
         const q = pageQuests[i];
         const pos = start + i + 1;
         const marker = q.done ? th.fg("success", "  ✓ ") : th.fg("muted", "  ○ ");
-        const idStr = th.fg(q.done ? "dim" : "accent", `#${pos}`);
+        const idSpacing = " ".repeat(3 - visibleWidth(`${pos}`));
+        const idStr = `${th.fg(q.done ? "dim" : "accent", `#${pos}`)}${idSpacing} ${th.fg("muted", `[${q.id}]`)}`;
         const desc = q.done
           ? th.fg("dim", th.strikethrough(q.description))
           : th.fg("text", q.description);
