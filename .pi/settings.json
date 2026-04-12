@@ -1,0 +1,23 @@
+{
+  "packages": [
+    {
+      "source": "https://github.com/kalindudc/pi-quests",
+      "extensions": []
+    },
+    {
+      "source": "npm:pi-quests",
+      "extensions": []
+    }
+  ],
+  "extensions": ["../src/index.ts"],
+  "pi-minions": {
+    "display": {
+      "observabilityLines": 10
+    }
+  },
+  "pi-quests": {
+    "ids": {
+      "length": 2
+    }
+  }
+}
