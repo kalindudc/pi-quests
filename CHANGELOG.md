@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-13
+
+- feat: add configurable shortcut to open quest list, default: `ctrl+shift+l`
+- feat: add sub-quest support with lifecycle management
+- feat: add user-configurable settings via pi settings files
+- feat: use random 2-digit hex IDs and targetId-based reorder
+- fix: add .pi/setting.json for development
+
 ## [0.3.0] - 2026-04-11
 
 - feat: add reorder action to move quests by position (dataplane, tool, /quests command, renderer, revert support)
