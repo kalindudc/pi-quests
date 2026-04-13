@@ -1,7 +1,7 @@
 import type { ResolvedConfig } from "../config.js";
 
 const ACKNOWLEDGEMENT =
-  "ALWAYS acknowledge this reminder and create, update, or align on quests before making further tool calls.";
+  "ALWAYS acknowledge this reminder immediately and create, update, or align on quests before making further tool calls. DO NOT add this acknowledgement as another quest.";
 
 export class QuestUsageTracker {
   private totalToolCalls = 0;

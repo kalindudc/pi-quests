@@ -12,6 +12,7 @@ describe("extension entry point", () => {
       registerTool: vi.fn(),
       registerMessageRenderer: vi.fn(),
       registerCommand: vi.fn(),
+      registerShortcut: vi.fn(),
       _handlers: handlers,
     };
   }
@@ -96,5 +97,15 @@ describe("extension entry point", () => {
     const first = await pi._handlers.context[0]({ messages: [] });
     expect(first.messages).toHaveLength(1);
     expect(await pi._handlers.context[0]({ messages: [] })).toBeUndefined();
+  });
+
+  it("registers shortcut during extension init", async () => {
+    const pi = createMockPi();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as ExtensionAPI);
+    expect(pi.registerShortcut).toHaveBeenCalledWith(
+      "ctrl+shift+l",
+      expect.objectContaining({ description: "Open quest list" }),
+    );
   });
 });

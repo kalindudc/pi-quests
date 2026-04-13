@@ -42,6 +42,17 @@ describe("getConfig", () => {
     expect(getConfig(ctx)).toEqual(DEFAULT_CONFIG);
   });
 
+  it("applies shortcuts.openQuests override", () => {
+    writeGlobalSettings({
+      "pi-quests": {
+        shortcuts: { openQuests: "ctrl+shift+q" },
+      } as Partial<ResolvedConfig>,
+    });
+    const ctx = createMockContext(tempDir);
+    const config = getConfig(ctx);
+    expect(config.shortcuts?.openQuests).toBe("ctrl+shift+q");
+  });
+
   it("applies global settings override", () => {
     writeGlobalSettings({
       "pi-quests": {

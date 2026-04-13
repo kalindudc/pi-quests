@@ -50,6 +50,9 @@ Add a `pi-quests` key to your settings file:
     },
     "validation": {
       "fakeDonePattern": "\\s[-\\u2013\\u2014]\\s*(DONE|COMPLETED|FINISHED)$|\\s[([](DONE|COMPLETED|FINISHED)[)\\]]$"
+    },
+    "shortcuts": {
+      "openQuests": "ctrl+shift+q"
     }
   }
 }
@@ -136,6 +139,14 @@ Regular expression string used to detect completion markers appended to quest de
 | Default | Type |
 |---------|------|
 | `\\s[-\\u2013\\u2014]\\s*(DONE\|COMPLETED\|FINISHED)$\|\\s[([](DONE\|COMPLETED\|FINISHED)[)\\]]$` | `string` |
+
+### shortcuts.openQuests
+
+Keyboard shortcut to open the interactive quest list. Default is `ctrl+shift+l`.
+
+| Default | Type |
+|---------|------|
+| `ctrl+shift+l` | `string` |
 
 ## Example configurations
 
@@ -228,6 +239,9 @@ Useful when you expect more than ~250 quests in a session.
     },
     "validation": {
       "fakeDonePattern": "\\s[-\\u2013\\u2014]\\s*(DONE|COMPLETED|FINISHED)$|\\s[([](DONE|COMPLETED|FINISHED)[)\\]]$"
+    },
+    "shortcuts": {
+      "openQuests": "ctrl+shift+q"
     }
   }
 }

@@ -1,7 +1,9 @@
 import type { UserMessage } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { createQuestsHandler } from "./commands/handler.js";
+import type { KeyId } from "@mariozechner/pi-tui";
+import { createQuestsHandler, openQuestList } from "./commands/handler.js";
 import { DEFAULT_CONFIG, getConfig, type ResolvedConfig } from "./config.js";
+import { logger } from "./logger.js";
 import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "./prompts.js";
 import { QuestLog } from "./quest/dataplane.js";
 import { formatQuestList } from "./quest/formatters.js";
@@ -24,6 +26,23 @@ export default function (pi: ExtensionAPI): void {
   let tracker = new QuestUsageTracker(DEFAULT_CONFIG);
   let config: ResolvedConfig = DEFAULT_CONFIG;
 
+  const shortcutKey = getConfig({ cwd: process.cwd() }).shortcuts?.openQuests ?? "ctrl+shift+l";
+  logger.debug("quests:shortcut", "register", { key: shortcutKey });
+  pi.registerShortcut(shortcutKey as KeyId, {
+    description: "Open quest list",
+    handler: async (ctx) => {
+      logger.debug("quests:shortcut", "handler", { hasUI: ctx.hasUI });
+      if (!ctx.hasUI) {
+        logger.debug("quests:shortcut", "no-ui");
+        ctx.ui.notify("Interactive mode required", "error");
+        return;
+      }
+      logger.debug("quests:shortcut", "open", { questCount: questLog.getAll().length });
+      await openQuestList(pi, questLog, config, ctx);
+      logger.debug("quests:shortcut", "closed");
+    },
+  });
+
   pi.on("session_start", async (_event, ctx) => {
     config = getConfig(ctx);
     questLog = new QuestLog(config);
@@ -32,11 +51,13 @@ export default function (pi: ExtensionAPI): void {
 
     registerQuestTool(pi, questLog, config);
 
+    const questsHandler = createQuestsHandler(pi, questLog, config);
     pi.registerCommand("quests", {
       description: "Quest commands: /quests [help] to see usage",
-      handler: createQuestsHandler(pi, questLog, config),
+      handler: questsHandler,
     });
   });
+
   pi.on("session_tree", async (_event, ctx) => questLog.reconstructFromSession(ctx));
 
   pi.on("turn_start", async () => tracker.clearTurnNudge());
@@ -88,7 +109,7 @@ export default function (pi: ExtensionAPI): void {
     }
 
     return {
-      systemPrompt: `# Quest Management\n${QUEST_PROMPT_GATE}${event.systemPrompt}\n\n## Quest Management\n${reminder}`,
+      systemPrompt: `# Quest Management\n${QUEST_PROMPT_GATE}${event.systemPrompt}\n\n## Quest Management\n${reminder}. Before adding any independent quests, clear any previously completed quests from the log to keep it focused on current work.`,
     };
   });
 

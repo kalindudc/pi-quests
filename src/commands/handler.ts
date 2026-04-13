@@ -1,5 +1,9 @@
 import { readFileSync } from "node:fs";
-import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+  ExtensionContext,
+} from "@mariozechner/pi-coding-agent";
 import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import type { QuestAction, QuestLog } from "../quest/dataplane.js";
@@ -46,6 +50,17 @@ const commandActionBuilders: {
   }),
   [QUEST_ACTIONS.revert]: () => ({ type: QUEST_ACTIONS.revert }),
 };
+
+export function openQuestList(
+  _pi: ExtensionAPI,
+  questLog: QuestLog,
+  config: ResolvedConfig,
+  ctx: ExtensionContext,
+): Promise<void> {
+  return ctx.ui.custom(
+    (_, theme, __, done) => new QuestListWidget(questLog, theme, () => done(undefined), config),
+  );
+}
 
 export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config: ResolvedConfig) {
   return async function handler(args: string, ctx: ExtensionCommandContext): Promise<void> {
@@ -99,10 +114,7 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config
         }
 
         logger.debug("quests:cmd", "list-open-widget", { count: questLog.getAll().length });
-        await ctx.ui.custom(
-          (_, theme, __, done) =>
-            new QuestListWidget(questLog, theme, () => done(undefined), config),
-        );
+        await openQuestList(pi, questLog, config, ctx);
 
         logger.debug("quests:cmd", "list-widget-closed");
         return;

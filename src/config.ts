@@ -16,6 +16,7 @@ export interface ResolvedConfig {
     complexTaskKeywords: string[];
   };
   validation: { fakeDonePattern: string };
+  shortcuts?: { openQuests?: string };
 }
 
 export const DEFAULT_COMPLEX_TASK_KEYWORDS = [
@@ -48,6 +49,7 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     complexTaskKeywords: [...DEFAULT_COMPLEX_TASK_KEYWORDS],
   },
   validation: { fakeDonePattern: DEFAULT_FAKE_DONE_PATTERN },
+  shortcuts: {},
 };
 
 function deepMerge(
@@ -106,7 +108,7 @@ function loadSettings(cwd: string): Record<string, unknown> {
   return settings;
 }
 
-export function getConfig(ctx: ExtensionContext): ResolvedConfig {
+export function getConfig(ctx: Pick<ExtensionContext, "cwd">): ResolvedConfig {
   const settings = loadSettings(ctx.cwd);
   const user = (settings["pi-quests"] ?? {}) as Partial<ResolvedConfig>;
   return {
@@ -138,6 +140,9 @@ export function getConfig(ctx: ExtensionContext): ResolvedConfig {
     validation: {
       fakeDonePattern:
         user.validation?.fakeDonePattern ?? DEFAULT_CONFIG.validation.fakeDonePattern,
+    },
+    shortcuts: {
+      openQuests: user.shortcuts?.openQuests,
     },
   };
 }

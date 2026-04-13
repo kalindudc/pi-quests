@@ -8,6 +8,7 @@
 |------|------|---------|
 | `quest` | Tool | Add, list, toggle, update, delete, clear, reorder, or revert quests |
 | `/quests` | Command | User-facing quest commands |
+| `Quest shortcut` | Keybinding | Open the interactive quest list (default `ctrl+shift+l`) |
 
 ## Tool: `quest`
 
