@@ -22,18 +22,46 @@
 { "action": "add", "descriptions": ["Task A", "Task B", "Task C"] }
 ```
 
-## Toggle completion
+## Add a sub-quest
 
 **Via command:**
 
 ```bash
-/quests toggle 3
+/quests add --parent 0a Write unit tests
 ```
 
 **Via tool:**
 
 ```json
-{ "action": "toggle", "id": 3 }
+{ "action": "add", "descriptions": ["Write unit tests"], "parentId": "0a" }
+```
+
+## Toggle completion
+
+**Via command:**
+
+```bash
+/quests toggle 3f
+```
+
+**Via tool:**
+
+```json
+{ "action": "toggle", "id": "3f" }
+```
+
+## Reorder quests
+
+**Via command:**
+
+```bash
+/quests reorder 0a 3f
+```
+
+**Via tool:**
+
+```json
+{ "action": "reorder", "id": "0a", "targetId": "3f" }
 ```
 
 ## Revert a mistake
@@ -61,6 +89,7 @@ Only the most recent mutating action is reverted.
 Opens a paginated widget showing:
 - progress bar
 - checked/unchecked quest rows
+- indented sub-quest rows
 - page navigation (`Tab` / `Shift+Tab`)
 
 ## Recover quests after a branch switch

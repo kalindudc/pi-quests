@@ -11,19 +11,20 @@
   - `/quests clear` command and tool
 - [x] agent prompt guidelines for quest management
 - [x] dynamic nudges via `context` event when the quest tool hasn't been used recently
+- [x] bug: when trying to add a subquest for a subquest, the returned error "not found" is unintuitive and misleading
 - [ ] lightweight snapshot capture at quest creation
 - [ ] `/quests rollback <id>` command and tool
 - [ ] snapshot restoration logic (file state + conversation context)
 - [ ] add a quest log reset
 - [ ] dynamic quest log resets, to avoid confusion
 - [ ] quest log filtering, only show incomplete quests, etc...
-- [ ] bug: when trying to add a subquest for a subquest, the returned error "not found" is unintuitive and misleading
 
 ### observability
 - [x] progress indicator for active quest (e.g., 3 of 7 complete)
 - [ ] quest status widget in footer or status line
 - [ ] quest history view with timestamps
 - [ ] debug logging for snapshot/rollback operations
+- [ ] bug: quest log widget does not update when new quests are added until a key is pressed
 
 ### config and quality
 - [ ] configurable quest persistence (memory-only vs file-backed)

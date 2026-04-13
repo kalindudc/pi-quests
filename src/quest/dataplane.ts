@@ -8,6 +8,7 @@ import {
   formatDeleteResult,
   formatNotFound,
   formatQuestList,
+  formatSubQuestCannotHaveSubQuests,
   formatToggleResult,
   formatUpdateResult,
 } from "./formatters.js";
@@ -244,6 +245,9 @@ export class QuestLog {
   }
 
   addSubQuest(description: string, parentId: string): SubQuest {
+    if (this.subQuests.some((sq) => sq.id === parentId)) {
+      throw new Error(formatSubQuestCannotHaveSubQuests(parentId));
+    }
     const parent = this.quests.find((q) => q.id === parentId);
     if (!parent) {
       throw new Error(`Parent quest [${parentId}] not found`);
@@ -464,6 +468,12 @@ export class QuestLog {
             };
           }
           if (action.parentId) {
+            if (this.subQuests.some((sq) => sq.id === action.parentId)) {
+              return {
+                success: false,
+                message: formatSubQuestCannotHaveSubQuests(action.parentId),
+              };
+            }
             const parent = this.quests.find((q) => q.id === action.parentId);
             if (!parent) {
               return { success: false, message: formatNotFound(action.parentId) };

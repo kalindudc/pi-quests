@@ -12,25 +12,40 @@ A quest is defined as:
 
 ```typescript
 interface Quest {
-  id: number;
+  id: string;
   description: string;
-  additionalContext?: string;
   done: boolean;
   createdAt: number;
 }
 ```
 
-IDs auto-increment per session and are restored during session reconstruction.
+IDs are generated as random hex strings (2 characters by default) and are restored during session reconstruction.
+
+## Sub-quests
+
+A **sub-quest** is a quest that belongs to a parent top-level quest. Sub-quests are useful for breaking large tasks into smaller, trackable steps.
+
+```typescript
+interface SubQuest extends Quest {
+  parentId: string;
+}
+```
+
+- Sub-quests are displayed indented beneath their parent quest.
+- A parent quest cannot be marked done until all its sub-quests are completed.
+- A parent quest cannot be deleted until all its sub-quests are completed (deleting a done parent cascade-deletes its done sub-quests).
+- Sub-quests cannot have nested sub-quests of their own.
 
 ## History and revert
 
-Every mutating action (`add`, `toggle`, `update`, `delete`, `clear`) pushes a typed `HistoryEntry` onto a stack. Calling `revert` pops the most recent entry and restores the previous state:
+Every mutating action (`add`, `toggle`, `update`, `delete`, `clear`, `reorder`) pushes a typed `HistoryEntry` onto a stack. Calling `revert` pops the most recent entry and restores the previous state:
 
 - `add` → removes the added quest
 - `toggle` → flips the done flag back
 - `update` → restores the previous description
-- `delete` → reinserts the quest at its original index
-- `clear` → restores the full quest array and next ID
+- `delete` → reinserts the quest at its original index (restores cascade-deleted sub-quests as well)
+- `clear` → restores the full quest array and used IDs
+- `reorder` → restores the original quest order and IDs
 
 Only the most recent action can be reverted. There is no multi-level undo.
 

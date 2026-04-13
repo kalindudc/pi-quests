@@ -43,3 +43,7 @@ export function formatNotFound(id: string): string {
 export function formatBlockedBySubQuests(id: string): string {
   return `Quest [${id}] has incomplete sub-quests`;
 }
+
+export function formatSubQuestCannotHaveSubQuests(id: string): string {
+  return `Sub-quest [${id}] cannot have nested sub-quests`;
+}

@@ -40,7 +40,7 @@ graph LR
 | `src/index.ts` | Extension entry point — creates `QuestLog`, registers tools/commands/renderers, wires session hooks |
 | `src/quest/types.ts` | `Quest`, `QUEST_ACTIONS`, `QUEST_ACTION_VALUES` — domain constants and types |
 | `src/quest/formatters.ts` | Pure formatting functions for all quest results |
-| `src/quest/dataplane.ts` | `QuestLog` — quest array, auto-increment ID, history stack, `execute()`, revert, session reconstruction |
+| `src/quest/dataplane.ts` | `QuestLog` — quest array, random hex IDs, history stack, `execute()`, revert, session reconstruction |
 | `src/tools/params.ts` | `QuestParams` — Typebox schema for the `quest` tool |
 | `src/tools/handler.ts` | `quest` tool implementation (`questToolExecute`, `registerQuestTool`) |
 | `src/commands/parse-args.ts` | `/quests` argument tokenizer and parser |
@@ -78,7 +78,7 @@ sequenceDiagram
     renderers-->>LLM: TUI render of call + result
 ```
 
-The tool result always includes `details: { quests, nextId }`. This lets the framework (and our session reconstruction logic) recover the full quest state from the session branch later.
+The tool result always includes `details: { quests, usedIds }`. This lets the framework (and our session reconstruction logic) recover the full quest state from the session branch later.
 
 ### Command execution
 
@@ -90,9 +90,9 @@ sequenceDiagram
     participant dataplane as quest/dataplane.ts
     participant widgets as renderers/commands.ts
 
-    User->>cmdHandler: /quests toggle 1
-    cmdHandler->>parseArgs: parseQuestArgs("toggle 1")
-    parseArgs-->>cmdHandler: { action: "toggle", id: 1 }
+    User->>cmdHandler: /quests toggle 1f
+    cmdHandler->>parseArgs: parseQuestArgs("toggle 1f")
+    parseArgs-->>cmdHandler: { action: "toggle", id: "1f" }
     cmdHandler->>cmdHandler: commandActionBuilders builds QuestAction
     cmdHandler->>dataplane: questLog.execute(QuestAction)
     dataplane->>dataplane: mutate state + push HistoryEntry
@@ -119,11 +119,11 @@ sequenceDiagram
     pi->>index: session_start / session_tree
     index->>dataplane: questLog.reconstructFromSession(ctx)
     dataplane->>dataplane: walk branch for latest quest toolResult
-    dataplane->>dataplane: restore quests[] and nextId from details
+    dataplane->>dataplane: restore quests[] and usedIds from details
     dataplane-->>index: state restored
 ```
 
-Because every tool result stores `details: { quests, nextId }`, the entire `QuestLog` can be rebuilt by scanning the current session branch. No disk persistence is required, and quest state survives branch switches automatically.
+Because every tool result stores `details: { quests, usedIds }`, the entire `QuestLog` can be rebuilt by scanning the current session branch. No disk persistence is required, and quest state survives branch switches automatically.
 
 ## Key concepts
 
@@ -133,12 +133,13 @@ Because every tool result stores `details: { quests, nextId }`, the entire `Ques
 
 ```typescript
 export type QuestAction =
-  | { type: "add"; descriptions?: string[] }
+  | { type: "add"; descriptions?: string[]; parentId?: string }
   | { type: "list" }
-  | { type: "toggle"; id?: number }
-  | { type: "update"; id?: number; description?: string }
-  | { type: "delete"; id?: number }
-  | { type: "clear" }
+  | { type: "toggle"; id?: string }
+  | { type: "update"; id?: string; description?: string }
+  | { type: "delete"; id?: string }
+  | { type: "clear"; all?: boolean }
+  | { type: "reorder"; id?: string; targetId?: string }
   | { type: "revert" };
 ```
 
@@ -153,11 +154,12 @@ Every mutating action pushes a typed `HistoryEntry` onto a stack. Calling `rever
 
 | Action | History entry | Revert behavior |
 |--------|---------------|-----------------|
-| `add` | `{ type: "add", id }` | Removes the added quest; restores `nextId` |
+| `add` | `{ type: "add", id, parentId? }` | Removes the added quest or sub-quest; restores used ID |
 | `toggle` | `{ type: "toggle", id }` | Flips the `done` flag back |
 | `update` | `{ type: "update", id, previousDescription }` | Restores the previous description |
-| `delete` | `{ type: "delete", quest, index }` | Reinserts the quest at its original index |
-| `clear` | `{ type: "clear", quests, nextId }` | Restores the full quest array and next ID |
+| `delete` | `{ type: "delete", quest, index, isSubQuest?, cascadeDeletedSubs? }` | Reinserts the quest at its original index; restores cascade-deleted sub-quests |
+| `clear` | `{ type: "clear", previousQuests, previousSubQuests?, all }` or `{ quests, subQuests?, all }` | Restores the full quest array and used IDs |
+| `reorder` | `{ type: "reorder", quest, oldIndex, previousIds, targetId }` | Restores the original order and IDs |
 
 The revert logic is implemented as a typed `undoHandlers` map — one handler per `HistoryEntry` type — rather than an if-chain.
 

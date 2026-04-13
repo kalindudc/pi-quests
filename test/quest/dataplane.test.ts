@@ -692,6 +692,26 @@ describe("SubQuest", () => {
     expect(result.message).toContain("not found");
   });
 
+  it("execute add with sub-quest parentId returns clear error", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    const result = log.execute({
+      type: QUEST_ACTIONS.add,
+      descriptions: ["Nested"],
+      parentId: sub.id,
+    });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("cannot have nested sub-quests");
+  });
+
+  it("addSubQuest with sub-quest parentId throws clear error", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    expect(() => log.addSubQuest("Nested", sub.id)).toThrow("cannot have nested sub-quests");
+  });
+
   it("execute add with parentId rejects done parent", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
