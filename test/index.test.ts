@@ -55,18 +55,19 @@ describe("extension entry point", () => {
     );
     const result = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
     expect(result.systemPrompt).toContain("Test task");
+    expect(result.systemPrompt).toContain("Keep quest progress updated");
   });
 
-  it("nudges via context after 5 non-quest tools with 0 active quests", async () => {
+  it("nudges via context after 8 non-quest tools with 0 active quests", async () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
     init(pi as unknown as ExtensionAPI);
-    for (let i = 0; i < 5; i++) await pi._handlers.tool_execution_end[0]({ toolName: "read" });
+    for (let i = 0; i < 8; i++) await pi._handlers.tool_execution_end[0]({ toolName: "read" });
     const result = await pi._handlers.context[0]({ messages: [] });
     expect(result.messages).toHaveLength(1);
     expect((result.messages[0] as { content: string }).content).toContain("QUEST REMINDER");
     expect((result.messages[0] as { content: string }).content).toContain(
-      "acknowledge this reminder",
+      "Update your quest status before continuing",
     );
   });
 
@@ -74,7 +75,7 @@ describe("extension entry point", () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
     init(pi as unknown as ExtensionAPI);
-    for (let i = 0; i < 3; i++) await pi._handlers.tool_execution_end[0]({ toolName: "bash" });
+    for (let i = 0; i < 8; i++) await pi._handlers.tool_execution_end[0]({ toolName: "bash" });
     expect((await pi._handlers.context[0]({ messages: [] })).messages).toHaveLength(1);
   });
 
@@ -93,7 +94,7 @@ describe("extension entry point", () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
     init(pi as unknown as ExtensionAPI);
-    for (let i = 0; i < 5; i++) await pi._handlers.tool_execution_end[0]({ toolName: "read" });
+    for (let i = 0; i < 8; i++) await pi._handlers.tool_execution_end[0]({ toolName: "read" });
     const first = await pi._handlers.context[0]({ messages: [] });
     expect(first.messages).toHaveLength(1);
     expect(await pi._handlers.context[0]({ messages: [] })).toBeUndefined();

@@ -6,10 +6,21 @@ import {
   formatBatchAddResult,
   formatBlockedBySubQuests,
   formatDeleteResult,
+  formatDescriptionRequiredError,
+  formatEmptyDescriptionsError,
+  formatIdRequiredError,
+  formatMissingDescriptionsError,
   formatNotFound,
+  formatNothingToRevertError,
+  formatParentDoneError,
+  formatParentNotFoundError,
   formatQuestList,
+  formatReorderedQuestNotFoundError,
+  formatReorderNotFoundError,
   formatSubQuestCannotHaveSubQuests,
+  formatTargetIdRequiredError,
   formatToggleResult,
+  formatUnknownActionError,
   formatUpdateResult,
 } from "./formatters.js";
 import { QUEST_ACTIONS, type Quest, type SubQuest } from "./types.js";
@@ -116,7 +127,7 @@ export class QuestLog {
       }
 
       logger.debug("quests:state", "revert-toggle-not-found", { id: entry.id });
-      return { success: false, message: `Quest [${entry.id}] not found` };
+      return { success: false, message: formatNotFound(entry.id) };
     },
     [QUEST_ACTIONS.update]: (entry) => {
       const quest = this.findById(entry.id);
@@ -127,7 +138,7 @@ export class QuestLog {
       }
 
       logger.debug("quests:state", "revert-update-not-found", { id: entry.id });
-      return { success: false, message: `Quest [${entry.id}] not found` };
+      return { success: false, message: formatNotFound(entry.id) };
     },
     [QUEST_ACTIONS.delete]: (entry) => {
       if (entry.isSubQuest) {
@@ -174,7 +185,8 @@ export class QuestLog {
     },
     [QUEST_ACTIONS.reorder]: (entry) => {
       const currentIndex = this.quests.indexOf(entry.quest);
-      if (currentIndex === -1) return { success: false, message: "Reordered quest not found" };
+      if (currentIndex === -1)
+        return { success: false, message: formatReorderedQuestNotFoundError() };
 
       this.quests.splice(currentIndex, 1);
       this.quests.splice(entry.oldIndex, 0, entry.quest);
@@ -250,10 +262,10 @@ export class QuestLog {
     }
     const parent = this.quests.find((q) => q.id === parentId);
     if (!parent) {
-      throw new Error(`Parent quest [${parentId}] not found`);
+      throw new Error(formatParentNotFoundError(parentId));
     }
     if (parent.done) {
-      throw new Error(`Cannot add sub-quest to completed parent quest [${parentId}]`);
+      throw new Error(formatParentDoneError(parentId));
     }
     const subQuest: SubQuest = {
       id: this.generateId(),
@@ -439,7 +451,7 @@ export class QuestLog {
     const entry = this.history.pop();
     if (!entry) {
       logger.debug("quests:state", "revert-empty");
-      return { success: false, message: "Nothing to revert" };
+      return { success: false, message: formatNothingToRevertError() };
     }
 
     logger.debug("quests:state", "revert", { type: entry.type });
@@ -464,7 +476,7 @@ export class QuestLog {
           if (action.descriptions.some((d) => !d || d.trim().length === 0)) {
             return {
               success: false,
-              message: "Error: all descriptions in a batch must be non-empty",
+              message: formatEmptyDescriptionsError(),
             };
           }
           if (action.parentId) {
@@ -481,7 +493,7 @@ export class QuestLog {
             if (parent.done) {
               return {
                 success: false,
-                message: `Error: cannot add sub-quest to completed parent quest [${action.parentId}]`,
+                message: formatParentDoneError(action.parentId),
               };
             }
           }
@@ -517,7 +529,7 @@ export class QuestLog {
         }
         return {
           success: false,
-          message: "Error: at least one description is required for add action",
+          message: formatMissingDescriptionsError(),
         };
       }
       case QUEST_ACTIONS.list: {
@@ -526,7 +538,7 @@ export class QuestLog {
       }
       case QUEST_ACTIONS.toggle: {
         if (action.id === undefined) {
-          return { success: false, message: "Error: id is required for toggle action" };
+          return { success: false, message: formatIdRequiredError("toggle") };
         }
 
         const q = this.toggle(action.id);
@@ -541,11 +553,11 @@ export class QuestLog {
       }
       case QUEST_ACTIONS.update: {
         if (action.id === undefined) {
-          return { success: false, message: "Error: id is required for update action" };
+          return { success: false, message: formatIdRequiredError("update") };
         }
 
         if (!action.description || action.description.trim().length === 0) {
-          return { success: false, message: "Error: description is required for update action" };
+          return { success: false, message: formatDescriptionRequiredError() };
         }
 
         const q = this.update(action.id, action.description);
@@ -557,7 +569,7 @@ export class QuestLog {
       }
       case QUEST_ACTIONS.delete: {
         if (action.id === undefined) {
-          return { success: false, message: "Error: id is required for delete action" };
+          return { success: false, message: formatIdRequiredError("delete") };
         }
 
         const q = this.delete(action.id);
@@ -580,13 +592,13 @@ export class QuestLog {
       }
       case QUEST_ACTIONS.reorder: {
         if (action.id === undefined)
-          return { success: false, message: "Error: id is required for reorder action" };
+          return { success: false, message: formatIdRequiredError("reorder") };
 
         if (action.targetId === undefined)
-          return { success: false, message: "Error: targetId is required for reorder action" };
+          return { success: false, message: formatTargetIdRequiredError() };
 
         const q = this.reorder(action.id, action.targetId);
-        if (!q) return { success: false, message: "Quest not found or is a sub-quest" };
+        if (!q) return { success: false, message: formatReorderNotFoundError() };
 
         return { success: true, message: `Reordered quest [${q.id}]: ${q.description}`, quest: q };
       }
@@ -594,7 +606,10 @@ export class QuestLog {
         return this.revert();
       }
       default: {
-        return { success: false, message: `Unknown action: ${(action as { type: string }).type}` };
+        return {
+          success: false,
+          message: formatUnknownActionError((action as { type: string }).type),
+        };
       }
     }
   }

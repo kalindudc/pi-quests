@@ -116,7 +116,10 @@ describe("createQuestsHandler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("toggle ff", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [ff] not found", "error");
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("Quest [ff] not found"),
+      "error",
+    );
   });
 
   it("updates a quest", async () => {
@@ -131,7 +134,10 @@ describe("createQuestsHandler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("update ff Missing", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [ff] not found", "error");
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("Quest [ff] not found"),
+      "error",
+    );
   });
 
   it("deletes a quest", async () => {
@@ -146,7 +152,10 @@ describe("createQuestsHandler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("delete ff", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [ff] not found", "error");
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("Quest [ff] not found"),
+      "error",
+    );
   });
 
   it("clears quests", async () => {
@@ -170,7 +179,10 @@ describe("createQuestsHandler", () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("revert", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Nothing to revert", "error");
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("Nothing to revert"),
+      "error",
+    );
   });
 
   it("shows help via notify", async () => {
@@ -206,7 +218,10 @@ describe("createQuestsHandler", () => {
     await handler("add Parent", ctx);
     await handler("add --parent 01 Sub", ctx);
     await handler("toggle 01", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [01] has incomplete sub-quests", "error");
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("Quest [01] has incomplete sub-quests"),
+      "error",
+    );
     expect(ctx.ui.notify).not.toHaveBeenCalledWith("Quest [01] done", "info");
   });
 
@@ -216,7 +231,10 @@ describe("createQuestsHandler", () => {
     await handler("add Parent", ctx);
     await handler("add --parent 01 Sub", ctx);
     await handler("delete 01", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [01] has incomplete sub-quests", "error");
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("Quest [01] has incomplete sub-quests"),
+      "error",
+    );
     expect(ctx.ui.notify).not.toHaveBeenCalledWith("Deleted quest [01]: Parent", "info");
   });
 });

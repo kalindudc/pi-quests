@@ -100,16 +100,17 @@ export default function (pi: ExtensionAPI): void {
 
   pi.on("before_agent_start", async (event) => {
     const quests = questLog.getAll();
-    let reminder = QUEST_PROMPT_REMINDER.join("\n");
+    let reminder = "";
     if (quests.length > 0) {
       const remaining = quests.filter((q) => !q.done).length;
       const list = formatQuestList(quests);
-
-      reminder += `\n\nActive quests (${remaining}/${quests.length}):\n${list}`;
+      reminder = `Active quests (${remaining}/${quests.length}):\n${list}\n\nKeep quest progress updated as you work.`;
+    } else {
+      reminder = `${QUEST_PROMPT_REMINDER.join("\n")}\n\nBefore adding any independent quests, clear any previously completed quests from the log to keep it focused on current work.`;
     }
 
     return {
-      systemPrompt: `# Quest Management\n${QUEST_PROMPT_GATE}${event.systemPrompt}\n\n## Quest Management\n${reminder}. Before adding any independent quests, clear any previously completed quests from the log to keep it focused on current work.`,
+      systemPrompt: `# Quest Management\n${QUEST_PROMPT_GATE}${event.systemPrompt}\n\n## Quest Management\n${reminder}`,
     };
   });
 

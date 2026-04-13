@@ -280,7 +280,7 @@ describe("QuestLog", () => {
     const log = new QuestLog();
     const result = log.revert();
     expect(result.success).toBe(false);
-    expect(result.message).toBe("Nothing to revert");
+    expect(result.message).toContain("Nothing to revert");
   });
 
   it("reverts reorder after clear because quest references are preserved", () => {
@@ -331,7 +331,7 @@ describe("QuestLog.execute", () => {
     const log = new QuestLog();
     const result = log.execute({ type: QUEST_ACTIONS.add });
     expect(result.success).toBe(false);
-    expect(result.message).toContain("at least one description is required");
+    expect(result.message).toContain("At least one description is required");
   });
 
   it("executes batch add action", () => {
@@ -346,7 +346,7 @@ describe("QuestLog.execute", () => {
     const log = new QuestLog();
     const result = log.execute({ type: QUEST_ACTIONS.add, descriptions: ["A", "", "B"] });
     expect(result.success).toBe(false);
-    expect(result.message).toContain("all descriptions in a batch must be non-empty");
+    expect(result.message).toContain("non-empty");
     expect(log.getAll()).toHaveLength(0);
   });
 

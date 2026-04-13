@@ -4,9 +4,20 @@ import {
   formatBatchAddResult,
   formatBlockedBySubQuests,
   formatDeleteResult,
+  formatDescriptionRequiredError,
+  formatEmptyDescriptionsError,
+  formatIdRequiredError,
+  formatMissingDescriptionsError,
   formatNotFound,
+  formatNothingToRevertError,
+  formatParentDoneError,
+  formatParentNotFoundError,
   formatQuestList,
+  formatReorderNotFoundError,
+  formatSubQuestCannotHaveSubQuests,
+  formatTargetIdRequiredError,
   formatToggleResult,
+  formatUnknownActionError,
   formatUpdateResult,
 } from "../../src/quest/formatters.js";
 
@@ -67,13 +78,85 @@ describe("formatDeleteResult", () => {
 });
 
 describe("formatNotFound", () => {
-  it("formats correctly", () => {
-    expect(formatNotFound("ff")).toBe("Quest [ff] not found");
+  it("includes recovery hint", () => {
+    expect(formatNotFound("ff")).toContain("Quest [ff] not found");
+    expect(formatNotFound("ff")).toContain("list action");
   });
 });
 
 describe("formatBlockedBySubQuests", () => {
-  it("formats correctly", () => {
-    expect(formatBlockedBySubQuests("01")).toBe("Quest [01] has incomplete sub-quests");
+  it("includes recovery hint", () => {
+    expect(formatBlockedBySubQuests("01")).toContain("Quest [01] has incomplete sub-quests");
+    expect(formatBlockedBySubQuests("01")).toContain("sub-quests are complete");
+  });
+});
+
+describe("formatSubQuestCannotHaveSubQuests", () => {
+  it("includes recovery hint", () => {
+    expect(formatSubQuestCannotHaveSubQuests("02")).toContain("cannot have nested sub-quests");
+    expect(formatSubQuestCannotHaveSubQuests("02")).toContain("one level of nesting");
+  });
+});
+
+describe("formatEmptyDescriptionsError", () => {
+  it("includes recovery hint", () => {
+    expect(formatEmptyDescriptionsError()).toContain("non-empty");
+  });
+});
+
+describe("formatMissingDescriptionsError", () => {
+  it("includes recovery hint", () => {
+    expect(formatMissingDescriptionsError()).toContain("At least one description is required");
+  });
+});
+
+describe("formatIdRequiredError", () => {
+  it("includes recovery hint", () => {
+    expect(formatIdRequiredError("toggle")).toContain("id is required");
+    expect(formatIdRequiredError("toggle")).toContain("list action");
+  });
+});
+
+describe("formatDescriptionRequiredError", () => {
+  it("includes recovery hint", () => {
+    expect(formatDescriptionRequiredError()).toContain("description is required");
+  });
+});
+
+describe("formatTargetIdRequiredError", () => {
+  it("includes recovery hint", () => {
+    expect(formatTargetIdRequiredError()).toContain("targetId is required");
+  });
+});
+
+describe("formatReorderNotFoundError", () => {
+  it("includes recovery hint", () => {
+    expect(formatReorderNotFoundError()).toContain("Reorder only works on top-level quests");
+  });
+});
+
+describe("formatParentNotFoundError", () => {
+  it("includes recovery hint", () => {
+    expect(formatParentNotFoundError("ff")).toContain("not found");
+    expect(formatParentNotFoundError("ff")).toContain("list action");
+  });
+});
+
+describe("formatParentDoneError", () => {
+  it("includes recovery hint", () => {
+    expect(formatParentDoneError("01")).toContain("completed parent quest");
+    expect(formatParentDoneError("01")).toContain("open parents");
+  });
+});
+
+describe("formatUnknownActionError", () => {
+  it("includes recovery hint", () => {
+    expect(formatUnknownActionError("fly")).toContain("Unknown action: fly");
+  });
+});
+
+describe("formatNothingToRevertError", () => {
+  it("includes recovery hint", () => {
+    expect(formatNothingToRevertError()).toContain("Nothing to revert");
   });
 });

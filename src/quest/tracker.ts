@@ -1,7 +1,8 @@
 import type { ResolvedConfig } from "../config.js";
 
-const ACKNOWLEDGEMENT =
-  "ALWAYS acknowledge this reminder immediately and create, update, or align on quests before making further tool calls. DO NOT add this acknowledgement as another quest.";
+const ACKNOWLEDGEMENT = "Update your quest status before continuing.";
+
+type NudgeCandidate = { index: number; message: string };
 
 export class QuestUsageTracker {
   private totalToolCalls = 0;
@@ -9,6 +10,8 @@ export class QuestUsageTracker {
   private hasEverUsedQuestTool = false;
   private lastQuestToolTime = 0;
   private nudgedThisTurn = false;
+  private lastNudgeTime = 0;
+  private lastNudgeIndex = -1;
 
   constructor(private readonly config: ResolvedConfig) {}
 
@@ -34,59 +37,107 @@ export class QuestUsageTracker {
   ): string | undefined {
     if (this.nudgedThisTurn) return undefined;
 
-    // 1. Initialization nudge
+    const now = Date.now();
+    const cooldownMs = this.config.nudges.hintIntervalMinutes * 60 * 1000;
+    if (this.lastNudgeTime > 0 && now - this.lastNudgeTime < cooldownMs) {
+      return undefined;
+    }
+
+    const eligible = this.getEligibleNudges(
+      activeQuestCount,
+      latestPrompt,
+      hasTopLevelQuestWithoutSubs,
+    );
+
+    // Rotate priority: start checking from the nudge after the last one that fired
+    const rotated = [
+      ...eligible.filter((n) => n.index > this.lastNudgeIndex),
+      ...eligible.filter((n) => n.index <= this.lastNudgeIndex),
+    ];
+
+    const winner = rotated[0];
+    if (winner) {
+      this.nudgedThisTurn = true;
+      this.lastNudgeTime = now;
+      this.lastNudgeIndex = winner.index;
+      return winner.message;
+    }
+
+    return undefined;
+  }
+
+  private getEligibleNudges(
+    activeQuestCount: number,
+    latestPrompt?: string,
+    hasTopLevelQuestWithoutSubs?: boolean,
+  ): NudgeCandidate[] {
+    const candidates: NudgeCandidate[] = [];
+
+    // 0. Initialization nudge
     if (this.totalToolCalls >= this.config.nudges.toolCallThreshold && !this.hasEverUsedQuestTool) {
-      this.nudgedThisTurn = true;
-      return `QUEST REMINDER: You have made ${this.totalToolCalls} tool calls but have NEVER used the quest tool this session. USE the quest tool to initialize tracking and break your work into concrete steps. ${ACKNOWLEDGEMENT}`;
+      candidates.push({
+        index: 0,
+        message: `QUEST REMINDER: You have made ${this.totalToolCalls} tool calls but have NEVER used the quest tool this session. USE the quest tool to initialize tracking and break your work into concrete steps. ${ACKNOWLEDGEMENT}`,
+      });
     }
 
-    // 2. Complex-task entrypoint nudge
+    // 1. Complex-task entrypoint nudge
     if (activeQuestCount === 0 && latestPrompt && this.isComplexPrompt(latestPrompt)) {
-      this.nudgedThisTurn = true;
-      return `QUEST REMINDER: Your latest prompt appears to be a complex task, but there are 0 active quests. USE the quest tool to break this into concrete, trackable steps. ${ACKNOWLEDGEMENT}`;
+      candidates.push({
+        index: 1,
+        message: `QUEST REMINDER: Your latest prompt appears to be a complex task, but there are 0 active quests. USE the quest tool to break this into concrete, trackable steps. ${ACKNOWLEDGEMENT}`,
+      });
     }
 
-    // 3. Time-based alignment nudge
+    // 2. Time-based alignment nudge
     if (
       this.hasEverUsedQuestTool &&
       this.lastQuestToolTime > 0 &&
       this.consecutiveNonQuestToolCalls >= this.config.nudges.timeBasedToolCallThreshold &&
       Date.now() - this.lastQuestToolTime >= this.config.nudges.hintIntervalMinutes * 60 * 1000
     ) {
-      this.nudgedThisTurn = true;
-      return `QUEST REMINDER: It has been a while since your last quest tool use and ${this.consecutiveNonQuestToolCalls} tools have been called since then. ALIGN on quest status before continuing. ${ACKNOWLEDGEMENT}`;
+      candidates.push({
+        index: 2,
+        message: `QUEST REMINDER: It has been a while since your last quest tool use and ${this.consecutiveNonQuestToolCalls} tools have been called since then. ALIGN on quest status before continuing. ${ACKNOWLEDGEMENT}`,
+      });
     }
 
-    // 4. Zero-active sustained-work nudge
+    // 3. Zero-active sustained-work nudge
     if (
       this.consecutiveNonQuestToolCalls >= this.config.nudges.zeroActiveToolCallThreshold &&
       activeQuestCount === 0
     ) {
-      this.nudgedThisTurn = true;
-      return `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and there are 0 active quests. TRACK your work with specific, actionable quests. ${ACKNOWLEDGEMENT}`;
+      candidates.push({
+        index: 3,
+        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and there are 0 active quests. TRACK your work with specific, actionable quests. ${ACKNOWLEDGEMENT}`,
+      });
     }
 
-    // 5. Sub-quest suggestion nudge
+    // 4. Sub-quest suggestion nudge
     if (
       this.hasEverUsedQuestTool &&
       this.consecutiveNonQuestToolCalls >= this.config.nudges.subQuestSuggestionToolCallThreshold &&
       activeQuestCount > 0 &&
       hasTopLevelQuestWithoutSubs
     ) {
-      this.nudgedThisTurn = true;
-      return `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and have active top-level quests without sub-quests. Use the \`add\` action with \`parentId\` to break down complex tasks into smaller, trackable steps. ${ACKNOWLEDGEMENT}`;
+      candidates.push({
+        index: 4,
+        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and have active top-level quests without sub-quests. Use the \`add\` action with \`parentId\` to break down complex tasks into smaller, trackable steps. ${ACKNOWLEDGEMENT}`,
+      });
     }
 
-    // 6. Stale-progress sustained-work nudge
+    // 5. Stale-progress sustained-work nudge
     if (
       this.consecutiveNonQuestToolCalls >= this.config.nudges.staleProgressToolCallThreshold &&
       activeQuestCount > 0
     ) {
-      this.nudgedThisTurn = true;
-      return `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool despite having active quests.\nUPDATE your quest progress to reflect current status.\nALWAYS use sub quests to break down a quest into smaller steps, and to group related tasks together. ${ACKNOWLEDGEMENT}`;
+      candidates.push({
+        index: 5,
+        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool despite having active quests.\nUPDATE your quest progress to reflect current status.\nALWAYS use sub quests to break down a quest into smaller steps, and to group related tasks together. ${ACKNOWLEDGEMENT}`,
+      });
     }
 
-    return undefined;
+    return candidates;
   }
 
   private isComplexPrompt(prompt: string): boolean {

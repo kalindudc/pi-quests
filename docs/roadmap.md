@@ -12,6 +12,12 @@
 - [x] agent prompt guidelines for quest management
 - [x] dynamic nudges via `context` event when the quest tool hasn't been used recently
 - [x] bug: when trying to add a subquest for a subquest, the returned error "not found" is unintuitive and misleading
+- [x] improve error messages with recovery hints (`Problem. Rule. Recovery hint.` pattern)
+- [ ] add `split` action — break one quest into N steps under it
+- [ ] add `move` action — promote/reparent/demote a quest or step via optional `parentId`
+- [ ] deprecate `sub-quest` naming in favor of `step` across types, methods, and user-facing strings
+- [ ] add `rules` action — return concise system constraints on demand
+- [ ] add `skill` action — return a teachable skill document for quest management best practices
 - [ ] lightweight snapshot capture at quest creation
 - [ ] `/quests rollback <id>` command and tool
 - [ ] snapshot restoration logic (file state + conversation context)
