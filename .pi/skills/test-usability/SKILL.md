@@ -33,7 +33,8 @@ Run a hands-on integration test of the pi-quests extension by **using the actual
    - MAJOR: Feature gap with a clear but wrong error message
    - MINOR: UI formatting issue or missing convenience
 4. After all steps, run the cleanup instructions to remove test data from the quest log
-5. Compile results into the report template below, and write to `./tmp/usability-report-<branch>-<timestamp>.md`
+5. SKIP compiling a report if all steps pass with expected results, otherwise, compile a report with failed steps and recommendations for improvement
+6. Compile results into the report template below, and write to `./tmp/usability-report-<branch>-<timestamp>.md`
 
 ## Report Template
 
