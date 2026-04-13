@@ -12,6 +12,7 @@ export interface ResolvedConfig {
     timeBasedToolCallThreshold: number;
     zeroActiveToolCallThreshold: number;
     staleProgressToolCallThreshold: number;
+    subQuestSuggestionToolCallThreshold: number;
     complexTaskKeywords: string[];
   };
   validation: { fakeDonePattern: string };
@@ -43,6 +44,7 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
     timeBasedToolCallThreshold: 3,
     zeroActiveToolCallThreshold: 5,
     staleProgressToolCallThreshold: 10,
+    subQuestSuggestionToolCallThreshold: 6,
     complexTaskKeywords: [...DEFAULT_COMPLEX_TASK_KEYWORDS],
   },
   validation: { fakeDonePattern: DEFAULT_FAKE_DONE_PATTERN },
@@ -126,6 +128,9 @@ export function getConfig(ctx: ExtensionContext): ResolvedConfig {
       staleProgressToolCallThreshold:
         user.nudges?.staleProgressToolCallThreshold ??
         DEFAULT_CONFIG.nudges.staleProgressToolCallThreshold,
+      subQuestSuggestionToolCallThreshold:
+        user.nudges?.subQuestSuggestionToolCallThreshold ??
+        DEFAULT_CONFIG.nudges.subQuestSuggestionToolCallThreshold,
       complexTaskKeywords: [
         ...(user.nudges?.complexTaskKeywords ?? DEFAULT_CONFIG.nudges.complexTaskKeywords),
       ],

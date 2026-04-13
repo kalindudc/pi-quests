@@ -37,6 +37,19 @@ describe("questToolExecute", () => {
     );
   });
 
+  it("adds a sub-quest with parentId", async () => {
+    const log = createLog();
+    log.add("Parent");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.add,
+      descriptions: ["Sub"],
+      parentId: "01",
+    });
+    expect(getText(result.content[0]!)).toContain("Added quest [02]: Sub");
+    const details = result.details as { quests: unknown[] };
+    expect(details.quests).toHaveLength(2);
+  });
+
   it("adds multiple quests in batch", async () => {
     const log = createLog();
     const result = await questToolExecute(log, "tc1", {
@@ -171,6 +184,24 @@ describe("questToolExecute", () => {
     expect(getText(result.content[0]!)).toContain("Cleared 1 completed quests");
     expect(log.getAll()).toHaveLength(1);
     expect(log.getAll()[0]!.description).toBe("B");
+  });
+
+  it("toggle blocked when parent has incomplete sub-quests", async () => {
+    const log = createLog();
+    log.add("Parent");
+    log.addSubQuest("Sub", "01");
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.toggle, id: "01" });
+    expect(getText(result.content[0]!)).toContain("incomplete sub-quests");
+    expect(log.getAll()[0]!.done).toBe(false);
+  });
+
+  it("delete blocked when parent has incomplete sub-quests", async () => {
+    const log = createLog();
+    log.add("Parent");
+    log.addSubQuest("Sub", "01");
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: "01" });
+    expect(getText(result.content[0]!)).toContain("incomplete sub-quests");
+    expect(log.getAll()).toHaveLength(2);
   });
 });
 

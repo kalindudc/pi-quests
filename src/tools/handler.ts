@@ -21,6 +21,7 @@ const toolHandlers: {
     return runTool(questLog, toolCallId, {
       type: QUEST_ACTIONS.add,
       descriptions: params.descriptions,
+      parentId: params.parentId,
     });
   },
   [QUEST_ACTIONS.list](questLog, _params, toolCallId) {
@@ -94,13 +95,14 @@ export function registerQuestTool(
     name: "quest",
     label: "Quest",
     description:
-      "Manage the session quest log. Use this VERY frequently to track tasks, plans, and progress throughout the conversation.",
-    promptSnippet: "Add, list, toggle, update, delete, clear, or revert quest items",
+      "Manage the session quest log including top-level quests and sub-quests. Use this VERY frequently to track tasks, plans, and progress throughout the conversation.",
+    promptSnippet:
+      "Add (with optional parentId for sub-quests), list, toggle, update, delete, clear, or revert quest items",
     promptGuidelines: [...QUEST_PROMPT_GATE, ...QUEST_PROMPT_REMINDER],
     parameters: createQuestParams(config.ids.length),
     execute: (toolCallId, params, _signal, _onUpdate, _ctx) =>
       questToolExecute(questLog, toolCallId, params),
     renderCall: renderQuestCall,
-    renderResult: renderQuestResult,
+    renderResult: renderQuestResult(config),
   });
 }

@@ -2,7 +2,8 @@ import type { Theme } from "@mariozechner/pi-coding-agent";
 import { Key, matchesKey, truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
-import type { Quest } from "../quest/types.js";
+import type { QuestLog } from "../quest/dataplane.js";
+import { formatQuestRow, formatSubQuestSpacerLine } from "./quests.js";
 
 export class QuestListWidget {
   private cachedWidth?: number;
@@ -10,12 +11,12 @@ export class QuestListWidget {
   private page = 0;
 
   constructor(
-    private quests: Quest[],
+    private questLog: QuestLog,
     private theme: Theme,
     private onClose: () => void,
     private readonly config: ResolvedConfig,
   ) {
-    logger.debug("quests:widget", "create", { questCount: quests.length });
+    logger.debug("quests:widget", "create", { questCount: questLog.getAll().length });
   }
 
   handleInput(data: string): void {
@@ -38,7 +39,35 @@ export class QuestListWidget {
   }
 
   private get totalPages(): number {
-    return Math.max(1, Math.ceil(this.quests.length / this.config.display.pageSize));
+    const totalLines = this.buildQuestLines(0).length;
+    return Math.max(1, Math.ceil(totalLines / this.config.display.pageSize));
+  }
+
+  private buildQuestLines(width: number): string[] {
+    const th = this.theme;
+    const parents = this.questLog.getQuests();
+    const lines: string[] = [];
+
+    for (let i = 0; i < parents.length; i++) {
+      const parent = parents[i];
+      const subs = this.questLog.getSubQuests(parent.id);
+
+      const row = formatQuestRow(th, parent, this.config.ids.length, i + 1);
+      lines.push(width > 0 ? truncateToWidth(row, width) : row);
+
+      if (subs.length > 0) {
+        lines.push(formatSubQuestSpacerLine(th, this.config.ids.length));
+
+        for (const sub of subs) {
+          const subRow = formatQuestRow(th, sub, this.config.ids.length);
+          lines.push(width > 0 ? truncateToWidth(subRow, width) : subRow);
+        }
+
+        lines.push("");
+      }
+    }
+
+    return lines;
   }
 
   private nextPage(): void {
@@ -73,13 +102,14 @@ export class QuestListWidget {
       width,
       page: this.page,
       totalPages: this.totalPages,
-      totalQuests: this.quests.length,
+      totalQuests: this.questLog.getAll().length,
     });
 
     const th = this.theme;
     const lines: string[] = [];
-    const total = this.quests.length;
-    const doneCount = this.quests.filter((q) => q.done).length;
+    const allQuests = this.questLog.getAll();
+    const total = allQuests.length;
+    const doneCount = allQuests.filter((q) => q.done).length;
 
     // Top accent border
     lines.push(th.fg("accent", "─".repeat(width)));
@@ -92,7 +122,7 @@ export class QuestListWidget {
 
     lines.push("");
 
-    if (this.quests.length === 0) {
+    if (total === 0) {
       lines.push(
         truncateToWidth(
           `  ${th.fg("dim", "No active quests. Add one with /quests add <description>")}`,
@@ -109,23 +139,11 @@ export class QuestListWidget {
       lines.push(truncateToWidth(`  ${bar}  ${th.fg("muted", `${doneCount}/${total}`)}`, width));
       lines.push("");
 
+      const questLines = this.buildQuestLines(width);
       const start = this.page * this.config.display.pageSize;
-      const pageQuests = this.quests.slice(start, start + this.config.display.pageSize);
-      for (let i = 0; i < pageQuests.length; i++) {
-        const q = pageQuests[i];
-        const pos = start + i + 1;
-        const marker = q.done ? th.fg("success", "  ✓ ") : th.fg("muted", "  ○ ");
-        const idSpacing = " ".repeat(
-          `${16 ** this.config.ids.length}`.length - visibleWidth(`${pos}`),
-        );
-        const idStr = `${th.fg(q.done ? "dim" : "accent", `#${pos}`)}${idSpacing} ${th.fg("muted", `[${q.id}]`)}`;
-        const desc = q.done
-          ? th.fg("dim", th.strikethrough(q.description))
-          : th.fg("text", q.description);
-        const row = `${marker}${idStr} ${desc}`;
+      const pageLines = questLines.slice(start, start + this.config.display.pageSize);
 
-        lines.push(truncateToWidth(row, width));
-      }
+      lines.push(...pageLines);
 
       if (this.totalPages > 1) {
         const pageInfo = `  Page ${this.page + 1}/${this.totalPages}  ${th.fg("dim", "· Tab/Shift+Tab to navigate")}`;

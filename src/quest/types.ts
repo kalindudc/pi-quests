@@ -32,3 +32,7 @@ export interface Quest {
   done: boolean;
   createdAt: number;
 }
+
+export interface SubQuest extends Quest {
+  parentId: string;
+}

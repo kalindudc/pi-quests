@@ -2,7 +2,7 @@ import { logger } from "../logger.js";
 import { QUEST_ACTIONS } from "../quest/types.js";
 
 export type ParsedArgs =
-  | { action: typeof QUEST_ACTIONS.add; descriptions: string[] }
+  | { action: typeof QUEST_ACTIONS.add; descriptions: string[]; parentId?: string }
   | { action: typeof QUEST_ACTIONS.list }
   | { action: typeof QUEST_ACTIONS.toggle; id: string }
   | { action: typeof QUEST_ACTIONS.update; id: string; description: string }
@@ -41,7 +41,7 @@ export function parseQuestArgs(args: string, idLength = 2): ParsedArgs {
   if (command === QUEST_ACTIONS.revert) return { action: QUEST_ACTIONS.revert };
 
   // Quest actions with arguments
-  if (command === QUEST_ACTIONS.add) return parseAddArgs(rest);
+  if (command === QUEST_ACTIONS.add) return parseAddArgs(rest, idLength);
   if (command === QUEST_ACTIONS.toggle) return parseIdAction(QUEST_ACTIONS.toggle, rest, idLength);
   if (command === QUEST_ACTIONS.delete) return parseIdAction(QUEST_ACTIONS.delete, rest, idLength);
   if (command === QUEST_ACTIONS.update) return parseUpdateArgs(rest, idLength);
@@ -50,11 +50,21 @@ export function parseQuestArgs(args: string, idLength = 2): ParsedArgs {
   return { error: `Unknown subcommand: ${command}. Use /quests help to see available commands.` };
 }
 
-function parseAddArgs(tokens: string[]): ParsedArgs {
-  const description = tokens.join(" ").trim();
-  if (!description) return { error: "Usage: /quests add <description>" };
+function parseAddArgs(tokens: string[], idLength: number): ParsedArgs {
+  let parentId: string | undefined;
+  let descTokens = tokens;
+  const pIdx = tokens.indexOf("--parent");
+  if (pIdx !== -1) {
+    const pid = tokens[pIdx + 1]?.toLowerCase() ?? "";
+    const pattern = new RegExp(`^[0-9a-f]{${idLength}}$`);
+    if (!pattern.test(pid)) return { error: "Usage: /quests add [--parent <id>] <description>" };
+    parentId = pid;
+    descTokens = tokens.slice(0, pIdx).concat(tokens.slice(pIdx + 2));
+  }
+  const description = descTokens.join(" ").trim();
+  if (!description) return { error: "Usage: /quests add [--parent <id>] <description>" };
 
-  return { action: QUEST_ACTIONS.add, descriptions: [description] };
+  return { action: QUEST_ACTIONS.add, descriptions: [description], parentId };
 }
 
 function parseIdAction(

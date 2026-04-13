@@ -28,6 +28,8 @@ describe("extension entry point", () => {
     expect(result.systemPrompt).toContain(
       "Before reading files, running commands, or making edits",
     );
+    expect(result.systemPrompt).toContain("sub-quest");
+    expect(result.systemPrompt).toContain("parentId");
   });
 
   it("includes active quests in the reminder", async () => {

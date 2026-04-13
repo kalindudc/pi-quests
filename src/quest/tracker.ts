@@ -27,7 +27,11 @@ export class QuestUsageTracker {
     this.nudgedThisTurn = false;
   }
 
-  getNudge(activeQuestCount: number, latestPrompt?: string): string | undefined {
+  getNudge(
+    activeQuestCount: number,
+    latestPrompt?: string,
+    hasTopLevelQuestWithoutSubs?: boolean,
+  ): string | undefined {
     if (this.nudgedThisTurn) return undefined;
 
     // 1. Initialization nudge
@@ -62,13 +66,24 @@ export class QuestUsageTracker {
       return `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and there are 0 active quests. TRACK your work with specific, actionable quests. ${ACKNOWLEDGEMENT}`;
     }
 
-    // 5. Stale-progress sustained-work nudge
+    // 5. Sub-quest suggestion nudge
+    if (
+      this.hasEverUsedQuestTool &&
+      this.consecutiveNonQuestToolCalls >= this.config.nudges.subQuestSuggestionToolCallThreshold &&
+      activeQuestCount > 0 &&
+      hasTopLevelQuestWithoutSubs
+    ) {
+      this.nudgedThisTurn = true;
+      return `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and have active top-level quests without sub-quests. Use the \`add\` action with \`parentId\` to break down complex tasks into smaller, trackable steps. ${ACKNOWLEDGEMENT}`;
+    }
+
+    // 6. Stale-progress sustained-work nudge
     if (
       this.consecutiveNonQuestToolCalls >= this.config.nudges.staleProgressToolCallThreshold &&
       activeQuestCount > 0
     ) {
       this.nudgedThisTurn = true;
-      return `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool despite having active quests. UPDATE your quest progress to reflect current status. ${ACKNOWLEDGEMENT}`;
+      return `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool despite having active quests.\nUPDATE your quest progress to reflect current status.\nALWAYS use sub quests to break down a quest into smaller steps, and to group related tasks together. ${ACKNOWLEDGEMENT}`;
     }
 
     return undefined;

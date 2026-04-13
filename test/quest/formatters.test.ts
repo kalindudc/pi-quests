@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatAddResult,
   formatBatchAddResult,
+  formatBlockedBySubQuests,
   formatDeleteResult,
   formatNotFound,
   formatQuestList,
@@ -20,6 +21,14 @@ describe("formatQuestList", () => {
 
   it("shows empty state", () => {
     expect(formatQuestList([])).toBe("No quests.");
+  });
+
+  it("skips positional numbers for sub-quests and indents them", () => {
+    const result = formatQuestList([
+      { id: "01", description: "Parent", done: false },
+      { id: "02", description: "Sub", done: false, parentId: "01" },
+    ]);
+    expect(result).toBe("#1 [01] [ ] Parent\n   [02] [ ] Sub");
   });
 });
 
@@ -60,5 +69,11 @@ describe("formatDeleteResult", () => {
 describe("formatNotFound", () => {
   it("formats correctly", () => {
     expect(formatNotFound("ff")).toBe("Quest [ff] not found");
+  });
+});
+
+describe("formatBlockedBySubQuests", () => {
+  it("formats correctly", () => {
+    expect(formatBlockedBySubQuests("01")).toBe("Quest [01] has incomplete sub-quests");
   });
 });

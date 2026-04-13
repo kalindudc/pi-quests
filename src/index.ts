@@ -51,8 +51,14 @@ export default function (pi: ExtensionAPI): void {
       .map((m) => (typeof m.content === "string" ? m.content : ""))
       .join("\n");
 
-    const activeQuestCount = questLog.getAll().filter((q) => !q.done).length;
-    const nudge = tracker.getNudge(activeQuestCount, latestPrompt);
+    const allQuests = questLog.getAll();
+    const activeQuests = allQuests.filter((q) => !q.done);
+    const activeQuestCount = activeQuests.length;
+    const activeTopLevel = activeQuests.filter((q) => !(q as { parentId?: string }).parentId);
+    const hasTopLevelQuestWithoutSubs = activeTopLevel.some(
+      (q) => !allQuests.some((sq) => (sq as { parentId?: string }).parentId === q.id),
+    );
+    const nudge = tracker.getNudge(activeQuestCount, latestPrompt, hasTopLevelQuestWithoutSubs);
 
     const fakeDoneRegex = new RegExp(config.validation.fakeDonePattern, "i");
     const fakeDone = questLog.getAll().find((q) => !q.done && fakeDoneRegex.test(q.description));

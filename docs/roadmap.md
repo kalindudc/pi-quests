@@ -17,6 +17,7 @@
 - [ ] add a quest log reset
 - [ ] dynamic quest log resets, to avoid confusion
 - [ ] quest log filtering, only show incomplete quests, etc...
+- [ ] bug: when trying to add a subquest for a subquest, the returned error "not found" is unintuitive and misleading
 
 ### observability
 - [x] progress indicator for active quest (e.g., 3 of 7 complete)

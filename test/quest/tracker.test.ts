@@ -87,4 +87,23 @@ describe("QuestUsageTracker", () => {
     const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
     expect(tracker.getNudge(3, "Refactor the auth module")).toBeUndefined();
   });
+
+  it("returns sub-quest suggestion nudge when active top-level quests lack sub-quests", () => {
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
+    tracker.onToolExecution("quest");
+    for (let i = 0; i < 5; i++) tracker.onToolExecution("read");
+    expect(tracker.getNudge(1, undefined, true)).toBeUndefined();
+    tracker.onToolExecution("read");
+    const nudge = tracker.getNudge(1, undefined, true);
+    expect(nudge).toContain("QUEST REMINDER");
+    expect(nudge).toContain("parentId");
+    expect(nudge).toContain("acknowledge this reminder");
+  });
+
+  it("does not return sub-quest suggestion nudge when all top-level quests have sub-quests", () => {
+    const tracker = new QuestUsageTracker(DEFAULT_CONFIG);
+    tracker.onToolExecution("quest");
+    for (let i = 0; i < 5; i++) tracker.onToolExecution("read");
+    expect(tracker.getNudge(1, undefined, false)).toBeUndefined();
+  });
 });

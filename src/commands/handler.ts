@@ -26,7 +26,11 @@ type MutatingCommand = Extract<
 const commandActionBuilders: {
   [K in MutatingCommand]: (parsed: Extract<ParsedArgs, { action: K }>) => QuestAction;
 } = {
-  [QUEST_ACTIONS.add]: (p) => ({ type: QUEST_ACTIONS.add, descriptions: p.descriptions }),
+  [QUEST_ACTIONS.add]: (p) => ({
+    type: QUEST_ACTIONS.add,
+    descriptions: p.descriptions,
+    parentId: p.parentId,
+  }),
   [QUEST_ACTIONS.toggle]: (p) => ({ type: QUEST_ACTIONS.toggle, id: p.id }),
   [QUEST_ACTIONS.update]: (p) => ({
     type: QUEST_ACTIONS.update,
@@ -97,7 +101,7 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config
         logger.debug("quests:cmd", "list-open-widget", { count: questLog.getAll().length });
         await ctx.ui.custom(
           (_, theme, __, done) =>
-            new QuestListWidget(questLog.getAll(), theme, () => done(undefined), config),
+            new QuestListWidget(questLog, theme, () => done(undefined), config),
         );
 
         logger.debug("quests:cmd", "list-widget-closed");
@@ -122,7 +126,7 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config
         logger.debug("quests:cmd", "help");
 
         const lines = ["Available /quests subcommands:"];
-        lines.push("  add <description>  - Add a new quest");
+        lines.push("  add [--parent <id>] <description>  - Add a new quest or sub-quest");
         lines.push("  list               - List all quests");
         lines.push("  toggle <id>        - Toggle quest completion");
         lines.push("  delete <id>        - Delete a quest");

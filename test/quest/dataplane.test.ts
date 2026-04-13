@@ -113,6 +113,17 @@ describe("QuestLog", () => {
     expect(q.done).toBe(false);
   });
 
+  it("reverts toggle on sub-quest", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    log.toggle(sub.id);
+    expect(sub.done).toBe(true);
+    const result = log.revert();
+    expect(result.success).toBe(true);
+    expect(sub.done).toBe(false);
+  });
+
   it("reverts clear", () => {
     const log = new QuestLog();
     log.add("A");
@@ -130,6 +141,15 @@ describe("QuestLog", () => {
     const updated = log.update(q.id, "New desc");
     expect(updated?.description).toBe("New desc");
     expect(log.getAll()[0]?.description).toBe("New desc");
+  });
+
+  it("updates a sub-quest description", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    const updated = log.update(sub.id, "New desc");
+    expect(updated?.description).toBe("New desc");
+    expect(log.getSubQuests(parent.id)[0]?.description).toBe("New desc");
   });
 
   it("returns undefined when updating nonexistent quest", () => {
@@ -159,6 +179,30 @@ describe("QuestLog", () => {
     const result = log.revert();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
+  });
+
+  it("reverts delete of parent and restores cascade-deleted sub-quests", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    log.toggle(sub.id);
+    log.toggle(parent.id);
+    log.delete(parent.id);
+    expect(log.getAll()).toHaveLength(0);
+    const result = log.revert();
+    expect(result.success).toBe(true);
+    expect(log.getAll()).toHaveLength(2);
+    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+  });
+
+  it("reverts add of sub-quest", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addSubQuest("Sub", parent.id);
+    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+    const result = log.revert();
+    expect(result.success).toBe(true);
+    expect(log.getSubQuests(parent.id)).toHaveLength(0);
   });
 
   it("delete removes the id from usedIds", () => {
@@ -220,6 +264,16 @@ describe("QuestLog", () => {
     const result = log.revert();
     expect(result.success).toBe(true);
     expect(log.getAll()[0]?.description).toBe("Original");
+  });
+
+  it("reverts update on sub-quest", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    log.update(sub.id, "Changed");
+    const result = log.revert();
+    expect(result.success).toBe(true);
+    expect(log.getSubQuests(parent.id)[0]?.description).toBe("Sub");
   });
 
   it("returns nothing to revert when history is empty", () => {
@@ -457,5 +511,244 @@ describe("QuestLog.execute", () => {
     expect(result.success).toBe(true);
     expect(result.message).toContain("Reverted add quest [01]");
     expect(log.getAll()).toHaveLength(0);
+  });
+});
+
+describe("SubQuest", () => {
+  it("addSubQuest creates a SubQuest", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    expect(sub.parentId).toBe(parent.id);
+    expect(sub.description).toBe("Sub");
+    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+  });
+
+  it("getSubQuests and getParentQuest return correct values", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    expect(log.getSubQuests(parent.id)).toEqual([sub]);
+    expect(log.getParentQuest(sub)).toEqual(parent);
+  });
+
+  it("getAll interleaves sub-quests after their parent", () => {
+    const log = new QuestLog();
+    const a = log.add("A");
+    log.add("B");
+    log.addSubQuest("Sub A", a.id);
+    const all = log.getAll();
+    expect(all.map((q) => q.description)).toEqual(["A", "Sub A", "B"]);
+    expect("parentId" in all[1]! && all[1].parentId).toBe(a.id);
+  });
+
+  it("toggling a parent with incomplete sub-quests returns null", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addSubQuest("Sub", parent.id);
+    expect(log.toggle(parent.id)).toBeNull();
+  });
+
+  it("toggling a parent succeeds once all sub-quests are done", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    log.toggle(sub.id);
+    const result = log.toggle(parent.id);
+    expect(result?.done).toBe(true);
+  });
+
+  it("reorder returns undefined when either id is a sub-quest", () => {
+    const log = new QuestLog();
+    const a = log.add("A");
+    const b = log.add("B");
+    const sub = log.addSubQuest("Sub", a.id);
+    expect(log.reorder(sub.id, b.id)).toBeUndefined();
+    expect(log.reorder(a.id, sub.id)).toBeUndefined();
+  });
+
+  it("deleting a parent with incomplete sub-quests returns null", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addSubQuest("Sub", parent.id);
+    expect(log.delete(parent.id)).toBeNull();
+  });
+
+  it("deleting a parent with all sub-quests done cascade-deletes them", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    log.toggle(sub.id);
+    log.toggle(parent.id);
+    const deleted = log.delete(parent.id);
+    expect(deleted?.description).toBe("Parent");
+    expect(log.getAll()).toHaveLength(0);
+    expect(log.getSubQuests(parent.id)).toHaveLength(0);
+  });
+
+  it("deleting a sub-quest removes only that entry", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    const deleted = log.delete(sub.id);
+    expect(deleted?.description).toBe("Sub");
+    expect(log.getAll()).toHaveLength(1);
+    expect(log.getSubQuests(parent.id)).toHaveLength(0);
+  });
+
+  it("clear removes done quests and sub-quests and can revert", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    log.toggle(sub.id);
+    expect(log.clear()).toBe(1);
+    expect(log.getAll()).toHaveLength(1);
+    expect(log.getSubQuests(parent.id)).toHaveLength(0);
+    const result = log.revert();
+    expect(result.success).toBe(true);
+    expect(log.getAll()).toHaveLength(2);
+  });
+
+  it("clear removes orphaned sub-quests when parent is done but sub-quest is not", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addSubQuest("Sub", parent.id);
+    // Simulate impossible state directly: parent done with incomplete sub
+    parent.done = true;
+    expect(log.clear()).toBe(2);
+    expect(log.getAll()).toHaveLength(0);
+    expect(log.getSubQuests(parent.id)).toHaveLength(0);
+    const result = log.revert();
+    expect(result.success).toBe(true);
+    expect(log.getAll()).toHaveLength(2);
+  });
+
+  it("clear all removes everything and can revert", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addSubQuest("Sub", parent.id);
+    expect(log.clear(true)).toBe(2);
+    expect(log.getAll()).toHaveLength(0);
+    const result = log.revert();
+    expect(result.success).toBe(true);
+    expect(log.getAll()).toHaveLength(2);
+  });
+
+  it("revert delete restores a sub-quest", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const sub = log.addSubQuest("Sub", parent.id);
+    log.delete(sub.id);
+    const result = log.revert();
+    expect(result.success).toBe(true);
+    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+  });
+
+  it("reconstructFromSession splits quests with parentId into subQuests", () => {
+    const log = new QuestLog();
+    const entries = [
+      {
+        type: "message",
+        message: {
+          role: "toolResult",
+          toolName: "quest",
+          details: {
+            quests: [
+              { id: "01", description: "Parent", done: false, createdAt: 1 },
+              { id: "02", description: "Sub", done: false, createdAt: 2, parentId: "01" },
+            ],
+          },
+        },
+      },
+    ];
+    const ctx = {
+      sessionManager: { getBranch: vi.fn().mockReturnValue(entries) },
+    } as unknown as ExtensionContext;
+    log.reconstructFromSession(ctx);
+    expect(log.getAll()).toHaveLength(2);
+    expect(log.getSubQuests("01")).toHaveLength(1);
+  });
+
+  it("execute add with parentId creates a sub-quest", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const result = log.execute({
+      type: QUEST_ACTIONS.add,
+      descriptions: ["Sub"],
+      parentId: parent.id,
+    });
+    expect(result.success).toBe(true);
+    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+  });
+
+  it("execute add with invalid parentId returns not found", () => {
+    const log = new QuestLog();
+    const result = log.execute({
+      type: QUEST_ACTIONS.add,
+      descriptions: ["Sub"],
+      parentId: "ff",
+    });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("not found");
+  });
+
+  it("execute add with parentId rejects done parent", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.toggle(parent.id);
+    const result = log.execute({
+      type: QUEST_ACTIONS.add,
+      descriptions: ["Sub"],
+      parentId: parent.id,
+    });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("completed parent");
+  });
+
+  it("execute update works on sub-quests", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addSubQuest("Sub", parent.id);
+    const result = log.execute({
+      type: QUEST_ACTIONS.update,
+      id: "02",
+      description: "Updated sub",
+    });
+    expect(result.success).toBe(true);
+    expect(log.getSubQuests(parent.id)[0]?.description).toBe("Updated sub");
+  });
+
+  it("execute reorder returns sub-quest error", () => {
+    const log = new QuestLog();
+    const a = log.add("A");
+    const b = log.add("B");
+    const sub = log.addSubQuest("Sub", a.id);
+    const result = log.execute({
+      type: QUEST_ACTIONS.reorder,
+      id: sub.id,
+      targetId: b.id,
+    });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("sub-quest");
+  });
+
+  it("execute toggle returns blocked error when parent has incomplete sub-quests", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addSubQuest("Sub", parent.id);
+    const result = log.execute({ type: QUEST_ACTIONS.toggle, id: parent.id });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("incomplete sub-quests");
+    expect(log.getAll()[0]!.done).toBe(false);
+  });
+
+  it("execute delete returns blocked error when parent has incomplete sub-quests", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addSubQuest("Sub", parent.id);
+    const result = log.execute({ type: QUEST_ACTIONS.delete, id: parent.id });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("incomplete sub-quests");
+    expect(log.getAll()).toHaveLength(2);
   });
 });

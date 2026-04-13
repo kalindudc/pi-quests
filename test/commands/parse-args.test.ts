@@ -31,8 +31,24 @@ describe("parseQuestArgs", () => {
     });
   });
 
+  it("parses add with --parent", () => {
+    expect(parseQuestArgs("add --parent 01 Sub task")).toEqual({
+      action: QUEST_ACTIONS.add,
+      descriptions: ["Sub task"],
+      parentId: "01",
+    });
+  });
+
   it("returns error for add without description", () => {
-    expect(parseQuestArgs("add")).toEqual({ error: "Usage: /quests add <description>" });
+    expect(parseQuestArgs("add")).toEqual({
+      error: "Usage: /quests add [--parent <id>] <description>",
+    });
+  });
+
+  it("returns error for add with invalid --parent id", () => {
+    expect(parseQuestArgs("add --parent xyz Sub")).toEqual({
+      error: "Usage: /quests add [--parent <id>] <description>",
+    });
   });
 
   it("parses toggle with id", () => {

@@ -1,11 +1,19 @@
 export function formatQuestList(
-  quests: { id: string; description: string; done: boolean }[],
+  quests: { id: string; description: string; done: boolean; parentId?: string }[],
 ): string {
   if (quests.length === 0) return "No quests.";
 
-  return quests
-    .map((q, i) => `#${i + 1} [${q.id}] [${q.done ? "x" : " "}] ${q.description}`)
-    .join("\n");
+  const lines: string[] = [];
+  let pos = 1;
+  for (const q of quests) {
+    if (q.parentId) {
+      lines.push(`   [${q.id}] [${q.done ? "x" : " "}] ${q.description}`);
+    } else {
+      lines.push(`#${pos} [${q.id}] [${q.done ? "x" : " "}] ${q.description}`);
+      pos++;
+    }
+  }
+  return lines.join("\n");
 }
 
 export function formatAddResult(q: { id: string; description: string }): string {
@@ -30,4 +38,8 @@ export function formatDeleteResult(q: { id: string; description: string }): stri
 
 export function formatNotFound(id: string): string {
   return `Quest [${id}] not found`;
+}
+
+export function formatBlockedBySubQuests(id: string): string {
+  return `Quest [${id}] has incomplete sub-quests`;
 }
