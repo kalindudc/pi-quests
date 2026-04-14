@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-14
+
+- feat: add reparent action to promote, demote, or move quests and steps with validation and revert support
+- feat: add rules and skill actions that return the built-in quest-management skill document
+- feat: add split action to break a quest into steps with add_step alias and command support
+- feat: rename sub-quest terminology to step across types, commands, docs, and prompts
+- feat: improve error messages with actionable recovery hints and refine nudge behavior
+
 ## [0.4.0] - 2026-04-13
 
 - feat: add configurable shortcut to open quest list, default: `ctrl+shift+l`
