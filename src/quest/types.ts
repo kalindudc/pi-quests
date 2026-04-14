@@ -11,6 +11,9 @@ export const QUEST_ACTIONS = {
   clear: "clear",
   reorder: "reorder",
   revert: "revert",
+  reparent: "reparent",
+  rules: "rules",
+  skill: "skill",
   split: "split",
   add_step: "add_step",
 } as const;
@@ -24,6 +27,9 @@ export const QUEST_ACTION_VALUES = [
   QUEST_ACTIONS.clear,
   QUEST_ACTIONS.reorder,
   QUEST_ACTIONS.revert,
+  QUEST_ACTIONS.reparent,
+  QUEST_ACTIONS.rules,
+  QUEST_ACTIONS.skill,
   QUEST_ACTIONS.split,
   QUEST_ACTIONS.add_step,
 ] as const;

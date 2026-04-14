@@ -107,3 +107,32 @@ export function formatNothingToRevertError(): string {
 export function formatReorderedQuestNotFoundError(): string {
   return `Reordered quest not found. It may have been deleted or cleared since the reorder was recorded.`;
 }
+
+export function formatReparentResult(
+  q: { id: string; description: string },
+  parentId?: string,
+): string {
+  return parentId
+    ? `Moved quest [${q.id}] under [${parentId}]: ${q.description}`
+    : `Promoted quest [${q.id}] to top-level: ${q.description}`;
+}
+
+export function formatReparentTargetNotFoundError(id: string): string {
+  return `Target quest [${id}] not found. Use the list action to see valid parent IDs.`;
+}
+
+export function formatReparentTargetIsStepError(id: string): string {
+  return `Step [${id}] cannot be a parent. The quest system only supports one level of nesting. Use a top-level quest as the parent instead.`;
+}
+
+export function formatReparentTargetDoneError(id: string): string {
+  return `Cannot reparent under completed parent [${id}]. Steps can only be added to open parents.`;
+}
+
+export function formatReparentDemoteHasStepsError(id: string): string {
+  return `Quest [${id}] has steps and cannot be demoted to a step. Delete or reparent its steps first.`;
+}
+
+export function formatReparentSelfParentError(id: string): string {
+  return `Quest [${id}] cannot be its own parent. Choose a different parent ID.`;
+}

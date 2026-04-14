@@ -16,11 +16,12 @@
 
 ```typescript
 {
-  action: "add" | "split" | "add_step" | "list" | "toggle" | "update" | "delete" | "clear" | "reorder" | "revert",
+  action: "add" | "split" | "add_step" | "reparent" | "list" | "toggle" | "update" | "delete" | "clear" | "reorder" | "revert" | "rules" | "skill",
   descriptions?: string[],
   description?: string,
   id?: string,
   targetId?: string,
+  parentId?: string,
   all?: boolean
 }
 ```
@@ -37,6 +38,9 @@
 | `clear` | — | Removes completed quests. Set `all: true` to remove everything. |
 | `reorder` | `id`, `targetId` | Moves a quest before the target quest |
 | `revert` | — | Reverts the most recent mutating action |
+| `reparent` | `id`, `parentId?` | Promotes, demotes, or reparents a quest/step |
+| `rules` | — | Returns quest management rules |
+| `skill` | — | Alias for `rules` |
 
 **Result shape:**
 
@@ -60,6 +64,7 @@
 | `clear` | `/quests clear [all]` | Clear completed quests, or optionally all quests |
 | `reorder` | `/quests reorder <id> <targetId>` | Reorder a quest before the target quest |
 | `revert` | `/quests revert` | Revert last change |
+| `reparent` | `/quests reparent <id> [parentId]` | Reparent a quest/step |
 | `version` | `/quests version` | Show extension version |
 | `changelog` | `/quests changelog` | Show reversed changelog |
 | `help` | `/quests help` | Show subcommand list |

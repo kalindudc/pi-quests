@@ -175,6 +175,29 @@ describe("questToolExecute", () => {
     expect(details.displayQuests).toBeUndefined();
   });
 
+  it("reparents a quest via tool", async () => {
+    const log = createLog();
+    log.add("Parent");
+    const q = log.add("Child");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.reparent,
+      id: q.id,
+      parentId: "01",
+    });
+    expect(getText(result.content[0]!)).toContain("Moved quest");
+    expect(log.getSteps("01")).toHaveLength(1);
+  });
+  it("promotes a step via tool", async () => {
+    const log = createLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.reparent,
+      id: "02",
+    });
+    expect(getText(result.content[0]!)).toContain("Promoted");
+    expect(log.getQuests()).toHaveLength(2);
+  });
   it("reorders via tool", async () => {
     const log = createLog();
     log.add("A");
@@ -199,6 +222,16 @@ describe("questToolExecute", () => {
     expect(log.getAll()[0]!.description).toBe("B");
   });
 
+  it("returns skill document for rules action", async () => {
+    const log = createLog();
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.rules });
+    expect(getText(result.content[0]!)).toContain("name: quest-management");
+  });
+  it("returns skill document for skill alias", async () => {
+    const log = createLog();
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.skill });
+    expect(getText(result.content[0]!)).toContain("name: quest-management");
+  });
   it("toggle blocked when parent has incomplete steps", async () => {
     const log = createLog();
     log.add("Parent");

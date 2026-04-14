@@ -28,9 +28,9 @@ Precondition: Use fresh quests for this scenario. Clear the log with `all: true`
 
 5. Add top-level quest `"Orphan Parent"` and record ID as `OP_ID`.
    Use `quest` action `"split"` with `id: OP_ID` and `descriptions: ["Orphan Step"]` and leave it undone.
-   Toggle `OP_ID` done.
+   Toggle the orphan step done, then toggle `OP_ID` done.
    Then use `quest` action `"clear"` without `all`.
-   - Expected: the incomplete step must NOT become an invisible orphan — it should be removed along with the done parent.
+   - Expected: both the done parent and its done step are removed together. The step must NOT become an invisible orphan.
    - **CRITICAL:** invisible orphans indicate a serious state-management bug.
    - Verify `"Orphan Step"` is absent from the list after clear.
 

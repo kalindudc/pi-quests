@@ -72,6 +72,19 @@ const toolHandlers: {
       targetId: params.targetId,
     });
   },
+  [QUEST_ACTIONS.reparent](questLog, params, toolCallId) {
+    return runTool(questLog, toolCallId, {
+      type: QUEST_ACTIONS.reparent,
+      id: params.id,
+      parentId: params.parentId,
+    });
+  },
+  [QUEST_ACTIONS.rules](questLog, _params, toolCallId) {
+    return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.rules });
+  },
+  [QUEST_ACTIONS.skill](questLog, _params, toolCallId) {
+    return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.skill });
+  },
   [QUEST_ACTIONS.revert](questLog, _params, toolCallId) {
     return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.revert });
   },
@@ -116,9 +129,11 @@ export function registerQuestTool(
     name: "quest",
     label: "Quest",
     description:
-      "Manage the session quest log including top-level quests and steps. Use this VERY frequently to track tasks, plans, and progress throughout the conversation.",
+      "Manage the session quest log and retrieve the complete quest system documentation. " +
+      "Use this VERY frequently to track tasks, plans, and progress. " +
+      "When you need to understand quests, steps, rules, or best practices, use action: 'skill' or action: 'rules'.",
     promptSnippet:
-      "Add, split (add_step), list, toggle, update, delete, clear, or revert quest items",
+      "Manage quests and steps, or retrieve quest rules and best practices via skill/rules",
     promptGuidelines: [...QUEST_PROMPT_GATE, ...QUEST_PROMPT_REMINDER],
     parameters: createQuestParams(config.ids.length),
     execute: (toolCallId, params, _signal, _onUpdate, _ctx) =>

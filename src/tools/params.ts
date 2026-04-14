@@ -32,6 +32,12 @@ export function createQuestParams(idLength: number) {
           "Target quest ID for reorder action. The quest will be moved to just before the target quest.",
       }),
     ),
+    parentId: Type.Optional(
+      Type.String({
+        pattern,
+        description: "Parent quest ID for reparent action. Omit to promote to top-level.",
+      }),
+    ),
     all: Type.Optional(
       Type.Boolean({
         description: "Clear all quests when true (defaults to clearing only completed quests)",

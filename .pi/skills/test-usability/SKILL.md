@@ -1,13 +1,13 @@
 ---
 name: test-usability
-description: Integration-test the pi-quests quest and subquest features by directly invoking the quest tool and /quests commands through isolated scenario playbooks.
+description: Integration-test the pi-quests quest and step features by directly invoking the quest tool through isolated agent-facing scenario playbooks.
 ---
 
 # pi-quests Usability Test Skill
 
 ## Purpose
 
-Run a hands-on integration test of the pi-quests extension by **using the actual `quest` tool and `/quests` command** in the conversation. Test scenarios live in isolated playbook files under `scenarios/` so each one can be detailed without overloading this skill.
+Run a hands-on integration test of the pi-quests extension by **using the actual `quest` tool** in the conversation. Test scenarios live in isolated playbook files under `scenarios/` so each one can be detailed without overloading this skill.
 
 ## When to Use
 
@@ -61,7 +61,7 @@ Write findings to `./tmp/usability-report-<branch>-<timestamp>.md` with this str
 ## Rules
 
 - ALWAYS start with `npm run typecheck`.
-- ALWAYS use the actual `quest` tool or `/quests` command for every step.
+- ALWAYS use the actual `quest` tool for every step.
 - ALWAYS read a scenario file fully before executing it, then follow its steps in order.
 - NEVER skip a step because a previous step failed.
 - ALWAYS record the verbatim tool result in the Actual column.

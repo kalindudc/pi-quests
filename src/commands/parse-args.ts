@@ -11,6 +11,7 @@ export type ParsedArgs =
   | { action: typeof QUEST_ACTIONS.clear; all?: boolean }
   | { action: typeof QUEST_ACTIONS.reorder; id: string; targetId: string }
   | { action: typeof QUEST_ACTIONS.revert }
+  | { action: typeof QUEST_ACTIONS.reparent; id: string; parentId?: string }
   | { action: "help" }
   | { action: "version" }
   | { action: "changelog" }
@@ -48,6 +49,7 @@ export function parseQuestArgs(args: string, idLength = 2): ParsedArgs {
   if (command === QUEST_ACTIONS.delete) return parseIdAction(QUEST_ACTIONS.delete, rest, idLength);
   if (command === QUEST_ACTIONS.update) return parseUpdateArgs(rest, idLength);
   if (command === QUEST_ACTIONS.reorder) return parseReorderArgs(rest, idLength);
+  if (command === QUEST_ACTIONS.reparent) return parseReparentArgs(rest, idLength);
 
   return { error: `Unknown subcommand: ${command}. Use /quests help to see available commands.` };
 }
@@ -106,4 +108,16 @@ function parseReorderArgs(tokens: string[], idLength: number): ParsedArgs {
     return { error: "Usage: /quests reorder <id> <targetId>" };
 
   return { action: QUEST_ACTIONS.reorder, id, targetId };
+}
+
+function parseReparentArgs(tokens: string[], idLength: number): ParsedArgs {
+  const id = tokens[0] ? tokens[0].toLowerCase() : "";
+  const pattern = new RegExp(`^[0-9a-f]{${idLength}}$`);
+  if (!pattern.test(id)) return { error: "Usage: /quests reparent <id> [parentId]" };
+
+  const parentId = tokens[1] ? tokens[1].toLowerCase() : undefined;
+  if (parentId && !pattern.test(parentId))
+    return { error: "Usage: /quests reparent <id> [parentId]" };
+
+  return { action: QUEST_ACTIONS.reparent, id, parentId };
 }

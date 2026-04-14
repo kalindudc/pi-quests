@@ -41,7 +41,7 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
   display: { pageSize: 10, progressBarMaxWidth: 24 },
   nudges: {
     toolCallThreshold: 8,
-    hintIntervalMinutes: 5,
+    hintIntervalMinutes: 4,
     timeBasedToolCallThreshold: 5,
     zeroActiveToolCallThreshold: 8,
     staleProgressToolCallThreshold: 16,

@@ -181,6 +181,69 @@ describe("QuestLog", () => {
     expect(log.getAll()).toHaveLength(2);
   });
 
+  it("reparent promotes a step to top-level quest", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const step = log.addStep("Sub", parent.id);
+    const reparented = log.reparent(step.id);
+    expect(reparented?.description).toBe("Sub");
+    expect(log.getQuests()).toHaveLength(2);
+    expect(log.getSteps(parent.id)).toHaveLength(0);
+  });
+  it("reparent demotes a quest to a step", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const quest = log.add("Child");
+    const reparented = log.reparent(quest.id, parent.id);
+    expect("parentId" in reparented! && reparented.parentId).toBe(parent.id);
+    expect(log.getQuests()).toHaveLength(1);
+    expect(log.getSteps(parent.id)).toHaveLength(1);
+  });
+  it("reparent reparents a step", () => {
+    const log = new QuestLog();
+    const a = log.add("A");
+    const b = log.add("B");
+    const step = log.addStep("Sub", a.id);
+    log.reparent(step.id, b.id);
+    expect(log.getSteps(a.id)).toHaveLength(0);
+    expect(log.getSteps(b.id)).toHaveLength(1);
+  });
+  it("reparent rejects invalid targets", () => {
+    const log = new QuestLog();
+    const p = log.add("P");
+    const step = log.addStep("S", p.id);
+    const q = log.add("Q");
+    expect(() => log.reparent(q.id, q.id)).toThrow("own parent");
+    expect(() => log.reparent(q.id, "02")).toThrow("Step");
+    log.toggle(step.id);
+    log.toggle(p.id);
+    expect(() => log.reparent(q.id, p.id)).toThrow("completed");
+    const p2 = log.add("P2");
+    const r = log.add("R");
+    log.addStep("Sub", r.id);
+    expect(() => log.reparent(r.id, p2.id)).toThrow("steps");
+  });
+  it("reverts reparent promotion, demotion, and reparent", () => {
+    const log = new QuestLog();
+    const a = log.add("A");
+    const b = log.add("B");
+    const step = log.addStep("Sub", a.id);
+    log.reparent(step.id);
+    expect(log.revert().success).toBe(true);
+    expect(log.getSteps(a.id)).toHaveLength(1);
+    log.reparent(b.id, a.id);
+    expect(log.revert().success).toBe(true);
+    expect(log.getQuests()).toHaveLength(2);
+    log.reparent(step.id, b.id);
+    expect(log.revert().success).toBe(true);
+    expect(log.getSteps(a.id)).toHaveLength(1);
+  });
+  it("execute reparent returns error without id", () => {
+    const log = new QuestLog();
+    const result = log.execute({ type: QUEST_ACTIONS.reparent });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("id is required");
+  });
   it("reverts delete of parent and restores cascade-deleted steps", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");

@@ -1,3 +1,13 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export function getQuestSkillDocument(): string {
+  return readFileSync(join(__dirname, "prompts", "skill.md"), "utf-8");
+}
+
 export const QUEST_PROMPT_REMINDER = [
   "Use the quest tool VERY frequently to track tasks, plans, and progress throughout the conversation.",
   "Before reading files, running commands, or making edits, ensure the current work is tracked as specific, actionable quests.",
@@ -13,6 +23,7 @@ export const QUEST_PROMPT_REMINDER = [
   "For reorder, provide the targetId (the hex ID of the quest to insert before).",
   "If you are unsure what to do next, use the list action to check active quests.",
   "Always use the hex ID shown in brackets (e.g. 0a, ff, 44e1, f712a) for toggle, update, delete, and reorder actions.",
+  "When you need to understand the quest system, rules, or best practices, use the quest tool with action: 'skill' or action: 'rules' rather than reading documentation files.",
 ] as const;
 
 export const QUEST_PROMPT_GATE =

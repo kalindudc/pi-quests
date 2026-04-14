@@ -99,6 +99,17 @@ describe("parseQuestArgs", () => {
     expect(parseQuestArgs("")).toEqual({ action: QUEST_ACTIONS.list });
   });
 
+  it("parses reparent with id and optional parentId", () => {
+    expect(parseQuestArgs("reparent 02 01")).toEqual({
+      action: QUEST_ACTIONS.reparent,
+      id: "02",
+      parentId: "01",
+    });
+    expect(parseQuestArgs("reparent 02")).toEqual({ action: QUEST_ACTIONS.reparent, id: "02" });
+    expect(parseQuestArgs("reparent")).toEqual({
+      error: "Usage: /quests reparent <id> [parentId]",
+    });
+  });
   it("parses reorder and clear variants", () => {
     expect(parseQuestArgs("reorder 02 01")).toEqual({
       action: QUEST_ACTIONS.reorder,

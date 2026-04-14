@@ -24,6 +24,7 @@ type MutatingCommand = Extract<
       | typeof QUEST_ACTIONS.delete
       | typeof QUEST_ACTIONS.clear
       | typeof QUEST_ACTIONS.reorder
+      | typeof QUEST_ACTIONS.reparent
       | typeof QUEST_ACTIONS.revert;
   }
 >["action"];
@@ -52,6 +53,11 @@ const commandActionBuilders: {
     type: QUEST_ACTIONS.reorder,
     id: p.id,
     targetId: p.targetId,
+  }),
+  [QUEST_ACTIONS.reparent]: (p) => ({
+    type: QUEST_ACTIONS.reparent,
+    id: p.id,
+    parentId: p.parentId,
   }),
   [QUEST_ACTIONS.revert]: () => ({ type: QUEST_ACTIONS.revert }),
 };
@@ -131,6 +137,7 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config
       case QUEST_ACTIONS.delete:
       case QUEST_ACTIONS.clear:
       case QUEST_ACTIONS.reorder:
+      case QUEST_ACTIONS.reparent:
       case QUEST_ACTIONS.revert: {
         const builder = commandActionBuilders[parsed.action];
         const action = builder(parsed as never);
@@ -150,6 +157,7 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config
         lines.push("  toggle <id>        - Toggle quest completion");
         lines.push("  delete <id>        - Delete a quest");
         lines.push("  update <id> <desc> - Update a quest description");
+        lines.push("  reparent <id> [parentId] - Reparent a quest/step (omit parentId to promote)");
         lines.push("  reorder <id> <targetId> - Reorder a quest before the target quest");
         lines.push("  revert             - Revert the last quest change");
         lines.push("  clear [all]        - Clear completed quests, or optionally all quests");

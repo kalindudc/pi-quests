@@ -38,7 +38,7 @@ interface Step extends Quest {
 
 ## History and revert
 
-Every mutating action (`add`, `toggle`, `update`, `delete`, `clear`, `reorder`) pushes a typed `HistoryEntry` onto a stack. Calling `revert` pops the most recent entry and restores the previous state:
+Every mutating action (`add`, `toggle`, `update`, `delete`, `clear`, `reorder`, `reparent`) pushes a typed `HistoryEntry` onto a stack. Calling `revert` pops the most recent entry and restores the previous state:
 
 - `add` → removes the added quest
 - `toggle` → flips the done flag back

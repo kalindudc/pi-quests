@@ -116,7 +116,7 @@ describe("QuestUsageTracker", () => {
     tracker.clearTurnNudge();
     // Immediately eligible again, but blocked by 5-minute global cooldown
     expect(tracker.getNudge(0)).toBeUndefined();
-    vi.advanceTimersByTime(5 * 60 * 1000 - 1);
+    vi.advanceTimersByTime(4 * 60 * 1000 - 1);
     expect(tracker.getNudge(0)).toBeUndefined();
     vi.advanceTimersByTime(1);
     expect(tracker.getNudge(0)).toBeDefined();

@@ -1,6 +1,7 @@
 import type { AgentToolResult, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { DEFAULT_CONFIG, type ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
+import { getQuestSkillDocument } from "../prompts.js";
 import {
   formatAddResult,
   formatBatchAddResult,
@@ -17,6 +18,12 @@ import {
   formatQuestList,
   formatReorderedQuestNotFoundError,
   formatReorderNotFoundError,
+  formatReparentDemoteHasStepsError,
+  formatReparentResult,
+  formatReparentSelfParentError,
+  formatReparentTargetDoneError,
+  formatReparentTargetIsStepError,
+  formatReparentTargetNotFoundError,
   formatStepCannotHaveSteps,
   formatTargetIdRequiredError,
   formatToggleResult,
@@ -49,6 +56,12 @@ export type HistoryEntry =
       oldIndex: number;
       previousIds: string[];
       targetId: string;
+    }
+  | {
+      type: typeof QUEST_ACTIONS.reparent;
+      id: string;
+      previousParentId?: string;
+      previousQuestIndex?: number;
     };
 
 export type QuestAction =
@@ -61,7 +74,10 @@ export type QuestAction =
   | { type: typeof QUEST_ACTIONS.delete; id?: string }
   | { type: typeof QUEST_ACTIONS.clear; all?: boolean }
   | { type: typeof QUEST_ACTIONS.reorder; id?: string; targetId?: string }
-  | { type: typeof QUEST_ACTIONS.revert };
+  | { type: typeof QUEST_ACTIONS.revert }
+  | { type: typeof QUEST_ACTIONS.reparent; id?: string; parentId?: string }
+  | { type: typeof QUEST_ACTIONS.rules }
+  | { type: typeof QUEST_ACTIONS.skill };
 
 export type QuestOperationResult = { success: boolean; message: string; quest?: Quest };
 
@@ -197,6 +213,20 @@ export class QuestLog {
       }
 
       return { success: true, message: `Reverted reorder for quest [${entry.quest.id}]` };
+    },
+    [QUEST_ACTIONS.reparent]: (entry) => {
+      const quest = this.findById(entry.id);
+      if (!quest) return { success: false, message: formatNotFound(entry.id) };
+      if (entry.previousParentId !== undefined) {
+        this.quests = this.quests.filter((q) => q.id !== entry.id);
+        (quest as Step).parentId = entry.previousParentId;
+        if (!this.steps.some((s) => s.id === entry.id)) this.steps.push(quest as Step);
+      } else if (entry.previousQuestIndex !== undefined) {
+        this.steps = this.steps.filter((s) => s.id !== entry.id);
+        delete (quest as Partial<Step>).parentId;
+        this.quests.splice(entry.previousQuestIndex, 0, quest);
+      }
+      return { success: true, message: `Reverted reparent for quest [${entry.id}]` };
     },
   };
 
@@ -467,6 +497,62 @@ export class QuestLog {
     return quest;
   }
 
+  reparent(id: string, parentId?: string): Quest | Step | undefined {
+    const quest = this.findById(id);
+    if (!quest) return undefined;
+
+    if (parentId) {
+      if (id === parentId) {
+        throw new Error(formatReparentSelfParentError(id));
+      }
+      const target = this.findById(parentId);
+      if (!target) {
+        throw new Error(formatReparentTargetNotFoundError(parentId));
+      }
+      if ("parentId" in target) {
+        throw new Error(formatReparentTargetIsStepError(parentId));
+      }
+      if (target.done) {
+        throw new Error(formatReparentTargetDoneError(parentId));
+      }
+      if (!("parentId" in quest)) {
+        const steps = this.getSteps(id);
+        if (steps.length > 0) {
+          throw new Error(formatReparentDemoteHasStepsError(id));
+        }
+      }
+      const previousQuestIndex = this.quests.findIndex((q) => q.id === id);
+      const previousParentId = "parentId" in quest ? quest.parentId : undefined;
+      this.quests = this.quests.filter((q) => q.id !== id);
+      this.steps = this.steps.filter((s) => s.id !== id);
+      (quest as Step).parentId = parentId;
+      this.steps.push(quest as Step);
+      this.history.push({
+        type: QUEST_ACTIONS.reparent,
+        id,
+        previousParentId,
+        previousQuestIndex: previousQuestIndex === -1 ? undefined : previousQuestIndex,
+      });
+    } else {
+      if (!("parentId" in quest)) {
+        return quest;
+      }
+      const previousParentId = quest.parentId;
+      this.steps = this.steps.filter((s) => s.id !== id);
+      delete (quest as Partial<Step>).parentId;
+      this.quests.push(quest);
+      this.history.push({ type: QUEST_ACTIONS.reparent, id, previousParentId });
+    }
+
+    logger.debug("quests:state", QUEST_ACTIONS.reparent, {
+      id,
+      parentId,
+      total: this.quests.length + this.steps.length,
+    });
+
+    return quest;
+  }
+
   revert(): QuestOperationResult {
     const entry = this.history.pop();
     if (!entry) {
@@ -625,6 +711,24 @@ export class QuestLog {
             message: `Error: ${err instanceof Error ? err.message : String(err)}`,
           };
         }
+      }
+      case QUEST_ACTIONS.reparent: {
+        if (action.id === undefined)
+          return { success: false, message: formatIdRequiredError("reparent") };
+        try {
+          const q = this.reparent(action.id, action.parentId);
+          if (!q) return { success: false, message: formatNotFound(action.id) };
+          return { success: true, message: formatReparentResult(q, action.parentId), quest: q };
+        } catch (err) {
+          return {
+            success: false,
+            message: `Error: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
+      }
+      case QUEST_ACTIONS.rules:
+      case QUEST_ACTIONS.skill: {
+        return { success: true, message: getQuestSkillDocument() };
       }
       case QUEST_ACTIONS.revert: {
         return this.revert();
