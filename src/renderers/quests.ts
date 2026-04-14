@@ -1,17 +1,17 @@
 import type { Theme } from "@mariozechner/pi-coding-agent";
 import { visibleWidth } from "@mariozechner/pi-tui";
-import type { Quest, SubQuest } from "../quest/types.js";
+import type { Quest, Step } from "../quest/types.js";
 
 export function formatQuestRow(
   theme: Theme,
-  q: Quest | SubQuest,
+  q: Quest | Step,
   idLength: number,
   pos?: number,
 ): string {
-  const isSub = "parentId" in q && q.parentId;
+  const isStep = "parentId" in q && q.parentId;
 
-  // position test is only relevant for quests, not subquests
-  const posText = isSub ? "" : pos !== undefined ? `#${pos}` : "";
+  // position test is only relevant for quests, not steps
+  const posText = isStep ? "" : pos !== undefined ? `#${pos}` : "";
   const posWidth = visibleWidth(posText);
   const idText = `[${q.id}]`;
 
@@ -19,13 +19,13 @@ export function formatQuestRow(
   const spacing = " ".repeat(visibleWidth(`${16 ** idLength}`) - posWidth);
   const idStr = `${theme.fg("muted", idText)} ${theme.fg(q.done ? "dim" : "accent", `${posText}`)}${spacing}`;
 
-  // for subquests, use a different marker and indent
-  const markerNotDone = isSub ? theme.fg("muted", " └── ○ ") : theme.fg("muted", " ○ ");
-  const markerDone = isSub ? theme.fg("muted", " └── ✓ ") : theme.fg("success", " ✓ ");
+  // for steps, use a different marker and indent
+  const markerNotDone = isStep ? theme.fg("muted", " └── ○ ") : theme.fg("muted", " ○ ");
+  const markerDone = isStep ? theme.fg("muted", " └── ✓ ") : theme.fg("success", " ✓ ");
   const marker = q.done ? markerDone : markerNotDone;
 
-  // for subquests, use dim text to contrast with the parent quests
-  const descColor = q.done || isSub ? "dim" : "text";
+  // for steps, use dim text to contrast with the parent quests
+  const descColor = q.done || isStep ? "dim" : "text";
   const desc = q.done
     ? theme.fg(descColor, theme.strikethrough(q.description))
     : theme.fg(descColor, q.description);
@@ -34,7 +34,7 @@ export function formatQuestRow(
   return line;
 }
 
-export function formatSubQuestSpacerLine(theme: Theme, idLength: number): string {
+export function formatStepSpacerLine(theme: Theme, idLength: number): string {
   const idTextLength = visibleWidth(`${16 ** idLength}`);
   // spacing for `[id](position string)`
   const spacerStr = `${" ".repeat(idTextLength + 2)}${" ".repeat(idTextLength)}`;

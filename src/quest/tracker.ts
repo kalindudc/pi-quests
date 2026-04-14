@@ -116,13 +116,13 @@ export class QuestUsageTracker {
     // 4. Sub-quest suggestion nudge
     if (
       this.hasEverUsedQuestTool &&
-      this.consecutiveNonQuestToolCalls >= this.config.nudges.subQuestSuggestionToolCallThreshold &&
+      this.consecutiveNonQuestToolCalls >= this.config.nudges.stepSuggestionToolCallThreshold &&
       activeQuestCount > 0 &&
       hasTopLevelQuestWithoutSubs
     ) {
       candidates.push({
         index: 4,
-        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and have active top-level quests without sub-quests. Use the \`add\` action with \`parentId\` to break down complex tasks into smaller, trackable steps. ${ACKNOWLEDGEMENT}`,
+        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and have active top-level quests without steps. Use the \`split\` action to break down complex tasks into smaller, trackable steps. ${ACKNOWLEDGEMENT}`,
       });
     }
 
@@ -133,7 +133,7 @@ export class QuestUsageTracker {
     ) {
       candidates.push({
         index: 5,
-        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool despite having active quests.\nUPDATE your quest progress to reflect current status.\nALWAYS use sub quests to break down a quest into smaller steps, and to group related tasks together. ${ACKNOWLEDGEMENT}`,
+        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool despite having active quests.\nUPDATE your quest progress to reflect current status.\nALWAYS use steps to break down a quest into smaller steps, and to group related tasks together. ${ACKNOWLEDGEMENT}`,
       });
     }
 

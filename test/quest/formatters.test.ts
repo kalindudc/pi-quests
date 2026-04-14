@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatAddResult,
   formatBatchAddResult,
-  formatBlockedBySubQuests,
+  formatBlockedBySteps,
   formatDeleteResult,
   formatDescriptionRequiredError,
   formatEmptyDescriptionsError,
@@ -14,7 +14,7 @@ import {
   formatParentNotFoundError,
   formatQuestList,
   formatReorderNotFoundError,
-  formatSubQuestCannotHaveSubQuests,
+  formatStepCannotHaveSteps,
   formatTargetIdRequiredError,
   formatToggleResult,
   formatUnknownActionError,
@@ -34,7 +34,7 @@ describe("formatQuestList", () => {
     expect(formatQuestList([])).toBe("No quests.");
   });
 
-  it("skips positional numbers for sub-quests and indents them", () => {
+  it("skips positional numbers for steps and indents them", () => {
     const result = formatQuestList([
       { id: "01", description: "Parent", done: false },
       { id: "02", description: "Sub", done: false, parentId: "01" },
@@ -84,17 +84,17 @@ describe("formatNotFound", () => {
   });
 });
 
-describe("formatBlockedBySubQuests", () => {
+describe("formatBlockedBySteps", () => {
   it("includes recovery hint", () => {
-    expect(formatBlockedBySubQuests("01")).toContain("Quest [01] has incomplete sub-quests");
-    expect(formatBlockedBySubQuests("01")).toContain("sub-quests are complete");
+    expect(formatBlockedBySteps("01")).toContain("Quest [01] has incomplete steps");
+    expect(formatBlockedBySteps("01")).toContain("steps are complete");
   });
 });
 
-describe("formatSubQuestCannotHaveSubQuests", () => {
+describe("formatStepCannotHaveSteps", () => {
   it("includes recovery hint", () => {
-    expect(formatSubQuestCannotHaveSubQuests("02")).toContain("cannot have nested sub-quests");
-    expect(formatSubQuestCannotHaveSubQuests("02")).toContain("one level of nesting");
+    expect(formatStepCannotHaveSteps("02")).toContain("cannot have nested steps");
+    expect(formatStepCannotHaveSteps("02")).toContain("one level of nesting");
   });
 });
 

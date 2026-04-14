@@ -31,23 +31,17 @@ describe("parseQuestArgs", () => {
     });
   });
 
-  it("parses add with --parent", () => {
-    expect(parseQuestArgs("add --parent 01 Sub task")).toEqual({
-      action: QUEST_ACTIONS.add,
-      descriptions: ["Sub task"],
-      parentId: "01",
-    });
-  });
-
   it("returns error for add without description", () => {
     expect(parseQuestArgs("add")).toEqual({
-      error: "Usage: /quests add [--parent <id>] <description>",
+      error: "Usage: /quests add <description>",
     });
   });
 
-  it("returns error for add with invalid --parent id", () => {
-    expect(parseQuestArgs("add --parent xyz Sub")).toEqual({
-      error: "Usage: /quests add [--parent <id>] <description>",
+  it("parses add-step with id and description", () => {
+    expect(parseQuestArgs("add-step 01 Sub task")).toEqual({
+      action: QUEST_ACTIONS.split,
+      id: "01",
+      descriptions: ["Sub task"],
     });
   });
 

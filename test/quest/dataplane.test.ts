@@ -113,15 +113,15 @@ describe("QuestLog", () => {
     expect(q.done).toBe(false);
   });
 
-  it("reverts toggle on sub-quest", () => {
+  it("reverts toggle on step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    log.toggle(sub.id);
-    expect(sub.done).toBe(true);
+    const step = log.addStep("Sub", parent.id);
+    log.toggle(step.id);
+    expect(step.done).toBe(true);
     const result = log.revert();
     expect(result.success).toBe(true);
-    expect(sub.done).toBe(false);
+    expect(step.done).toBe(false);
   });
 
   it("reverts clear", () => {
@@ -143,13 +143,13 @@ describe("QuestLog", () => {
     expect(log.getAll()[0]?.description).toBe("New desc");
   });
 
-  it("updates a sub-quest description", () => {
+  it("updates a step description", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    const updated = log.update(sub.id, "New desc");
+    const step = log.addStep("Sub", parent.id);
+    const updated = log.update(step.id, "New desc");
     expect(updated?.description).toBe("New desc");
-    expect(log.getSubQuests(parent.id)[0]?.description).toBe("New desc");
+    expect(log.getSteps(parent.id)[0]?.description).toBe("New desc");
   });
 
   it("returns undefined when updating nonexistent quest", () => {
@@ -181,28 +181,28 @@ describe("QuestLog", () => {
     expect(log.getAll()).toHaveLength(2);
   });
 
-  it("reverts delete of parent and restores cascade-deleted sub-quests", () => {
+  it("reverts delete of parent and restores cascade-deleted steps", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    log.toggle(sub.id);
+    const step = log.addStep("Sub", parent.id);
+    log.toggle(step.id);
     log.toggle(parent.id);
     log.delete(parent.id);
     expect(log.getAll()).toHaveLength(0);
     const result = log.revert();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
-    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+    expect(log.getSteps(parent.id)).toHaveLength(1);
   });
 
-  it("reverts add of sub-quest", () => {
+  it("reverts add of step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    log.addSubQuest("Sub", parent.id);
-    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+    log.addStep("Sub", parent.id);
+    expect(log.getSteps(parent.id)).toHaveLength(1);
     const result = log.revert();
     expect(result.success).toBe(true);
-    expect(log.getSubQuests(parent.id)).toHaveLength(0);
+    expect(log.getSteps(parent.id)).toHaveLength(0);
   });
 
   it("delete removes the id from usedIds", () => {
@@ -266,14 +266,14 @@ describe("QuestLog", () => {
     expect(log.getAll()[0]?.description).toBe("Original");
   });
 
-  it("reverts update on sub-quest", () => {
+  it("reverts update on step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    log.update(sub.id, "Changed");
+    const step = log.addStep("Sub", parent.id);
+    log.update(step.id, "Changed");
     const result = log.revert();
     expect(result.success).toBe(true);
-    expect(log.getSubQuests(parent.id)[0]?.description).toBe("Sub");
+    expect(log.getSteps(parent.id)[0]?.description).toBe("Sub");
   });
 
   it("returns nothing to revert when history is empty", () => {
@@ -514,110 +514,110 @@ describe("QuestLog.execute", () => {
   });
 });
 
-describe("SubQuest", () => {
-  it("addSubQuest creates a SubQuest", () => {
+describe("Step", () => {
+  it("addStep creates a Step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    expect(sub.parentId).toBe(parent.id);
-    expect(sub.description).toBe("Sub");
-    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+    const step = log.addStep("Sub", parent.id);
+    expect(step.parentId).toBe(parent.id);
+    expect(step.description).toBe("Sub");
+    expect(log.getSteps(parent.id)).toHaveLength(1);
   });
 
-  it("getSubQuests and getParentQuest return correct values", () => {
+  it("getSteps and getParent return correct values", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    expect(log.getSubQuests(parent.id)).toEqual([sub]);
-    expect(log.getParentQuest(sub)).toEqual(parent);
+    const step = log.addStep("Sub", parent.id);
+    expect(log.getSteps(parent.id)).toEqual([step]);
+    expect(log.getParent(step)).toEqual(parent);
   });
 
-  it("getAll interleaves sub-quests after their parent", () => {
+  it("getAll interleaves steps after their parent", () => {
     const log = new QuestLog();
     const a = log.add("A");
     log.add("B");
-    log.addSubQuest("Sub A", a.id);
+    log.addStep("Sub A", a.id);
     const all = log.getAll();
     expect(all.map((q) => q.description)).toEqual(["A", "Sub A", "B"]);
     expect("parentId" in all[1]! && all[1].parentId).toBe(a.id);
   });
 
-  it("toggling a parent with incomplete sub-quests returns null", () => {
+  it("toggling a parent with incomplete steps returns null", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    log.addSubQuest("Sub", parent.id);
+    log.addStep("Sub", parent.id);
     expect(log.toggle(parent.id)).toBeNull();
   });
 
-  it("toggling a parent succeeds once all sub-quests are done", () => {
+  it("toggling a parent succeeds once all steps are done", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    log.toggle(sub.id);
+    const step = log.addStep("Sub", parent.id);
+    log.toggle(step.id);
     const result = log.toggle(parent.id);
     expect(result?.done).toBe(true);
   });
 
-  it("reorder returns undefined when either id is a sub-quest", () => {
+  it("reorder returns undefined when either id is a step", () => {
     const log = new QuestLog();
     const a = log.add("A");
     const b = log.add("B");
-    const sub = log.addSubQuest("Sub", a.id);
-    expect(log.reorder(sub.id, b.id)).toBeUndefined();
-    expect(log.reorder(a.id, sub.id)).toBeUndefined();
+    const step = log.addStep("Sub", a.id);
+    expect(log.reorder(step.id, b.id)).toBeUndefined();
+    expect(log.reorder(a.id, step.id)).toBeUndefined();
   });
 
-  it("deleting a parent with incomplete sub-quests returns null", () => {
+  it("deleting a parent with incomplete steps returns null", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    log.addSubQuest("Sub", parent.id);
+    log.addStep("Sub", parent.id);
     expect(log.delete(parent.id)).toBeNull();
   });
 
-  it("deleting a parent with all sub-quests done cascade-deletes them", () => {
+  it("deleting a parent with all steps done cascade-deletes them", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    log.toggle(sub.id);
+    const step = log.addStep("Sub", parent.id);
+    log.toggle(step.id);
     log.toggle(parent.id);
     const deleted = log.delete(parent.id);
     expect(deleted?.description).toBe("Parent");
     expect(log.getAll()).toHaveLength(0);
-    expect(log.getSubQuests(parent.id)).toHaveLength(0);
+    expect(log.getSteps(parent.id)).toHaveLength(0);
   });
 
-  it("deleting a sub-quest removes only that entry", () => {
+  it("deleting a step removes only that entry", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    const deleted = log.delete(sub.id);
+    const step = log.addStep("Sub", parent.id);
+    const deleted = log.delete(step.id);
     expect(deleted?.description).toBe("Sub");
     expect(log.getAll()).toHaveLength(1);
-    expect(log.getSubQuests(parent.id)).toHaveLength(0);
+    expect(log.getSteps(parent.id)).toHaveLength(0);
   });
 
-  it("clear removes done quests and sub-quests and can revert", () => {
+  it("clear removes done quests and steps and can revert", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    log.toggle(sub.id);
+    const step = log.addStep("Sub", parent.id);
+    log.toggle(step.id);
     expect(log.clear()).toBe(1);
     expect(log.getAll()).toHaveLength(1);
-    expect(log.getSubQuests(parent.id)).toHaveLength(0);
+    expect(log.getSteps(parent.id)).toHaveLength(0);
     const result = log.revert();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
   });
 
-  it("clear removes orphaned sub-quests when parent is done but sub-quest is not", () => {
+  it("clear removes orphaned steps when parent is done but step is not", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    log.addSubQuest("Sub", parent.id);
-    // Simulate impossible state directly: parent done with incomplete sub
+    log.addStep("Sub", parent.id);
+    // Simulate impossible state directly: parent done with incomplete step
     parent.done = true;
     expect(log.clear()).toBe(2);
     expect(log.getAll()).toHaveLength(0);
-    expect(log.getSubQuests(parent.id)).toHaveLength(0);
+    expect(log.getSteps(parent.id)).toHaveLength(0);
     const result = log.revert();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
@@ -626,7 +626,7 @@ describe("SubQuest", () => {
   it("clear all removes everything and can revert", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    log.addSubQuest("Sub", parent.id);
+    log.addStep("Sub", parent.id);
     expect(log.clear(true)).toBe(2);
     expect(log.getAll()).toHaveLength(0);
     const result = log.revert();
@@ -634,17 +634,17 @@ describe("SubQuest", () => {
     expect(log.getAll()).toHaveLength(2);
   });
 
-  it("revert delete restores a sub-quest", () => {
+  it("revert delete restores a step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    log.delete(sub.id);
+    const step = log.addStep("Sub", parent.id);
+    log.delete(step.id);
     const result = log.revert();
     expect(result.success).toBe(true);
-    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+    expect(log.getSteps(parent.id)).toHaveLength(1);
   });
 
-  it("reconstructFromSession splits quests with parentId into subQuests", () => {
+  it("reconstructFromSession splits quests with parentId into steps", () => {
     const log = new QuestLog();
     const entries = [
       {
@@ -666,109 +666,129 @@ describe("SubQuest", () => {
     } as unknown as ExtensionContext;
     log.reconstructFromSession(ctx);
     expect(log.getAll()).toHaveLength(2);
-    expect(log.getSubQuests("01")).toHaveLength(1);
+    expect(log.getSteps("01")).toHaveLength(1);
   });
 
-  it("execute add with parentId creates a sub-quest", () => {
+  it("split creates multiple steps", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    const steps = log.split(parent.id, ["A", "B"]);
+    expect(steps).toHaveLength(2);
+    expect(log.getSteps(parent.id)).toHaveLength(2);
+  });
+
+  it("split rejects missing parent", () => {
+    const log = new QuestLog();
+    expect(() => log.split("ff", ["A"])).toThrow("not found");
+  });
+
+  it("split rejects done parent", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.toggle(parent.id);
+    expect(() => log.split(parent.id, ["A"])).toThrow("completed parent");
+  });
+
+  it("execute split creates a step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
     const result = log.execute({
-      type: QUEST_ACTIONS.add,
+      type: QUEST_ACTIONS.split,
+      id: parent.id,
       descriptions: ["Sub"],
-      parentId: parent.id,
     });
     expect(result.success).toBe(true);
-    expect(log.getSubQuests(parent.id)).toHaveLength(1);
+    expect(log.getSteps(parent.id)).toHaveLength(1);
   });
 
-  it("execute add with invalid parentId returns not found", () => {
+  it("execute split returns not found for invalid id", () => {
     const log = new QuestLog();
     const result = log.execute({
-      type: QUEST_ACTIONS.add,
+      type: QUEST_ACTIONS.split,
+      id: "ff",
       descriptions: ["Sub"],
-      parentId: "ff",
     });
     expect(result.success).toBe(false);
     expect(result.message).toContain("not found");
   });
 
-  it("execute add with sub-quest parentId returns clear error", () => {
+  it("execute split with step id returns clear error", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
+    const step = log.addStep("Sub", parent.id);
     const result = log.execute({
-      type: QUEST_ACTIONS.add,
+      type: QUEST_ACTIONS.split,
+      id: step.id,
       descriptions: ["Nested"],
-      parentId: sub.id,
     });
     expect(result.success).toBe(false);
-    expect(result.message).toContain("cannot have nested sub-quests");
+    expect(result.message).toContain("cannot have nested steps");
   });
 
-  it("addSubQuest with sub-quest parentId throws clear error", () => {
+  it("addStep with step parentId throws clear error", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    const sub = log.addSubQuest("Sub", parent.id);
-    expect(() => log.addSubQuest("Nested", sub.id)).toThrow("cannot have nested sub-quests");
+    const step = log.addStep("Sub", parent.id);
+    expect(() => log.addStep("Nested", step.id)).toThrow("cannot have nested steps");
   });
 
-  it("execute add with parentId rejects done parent", () => {
+  it("execute split rejects done parent", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
     log.toggle(parent.id);
     const result = log.execute({
-      type: QUEST_ACTIONS.add,
+      type: QUEST_ACTIONS.split,
+      id: parent.id,
       descriptions: ["Sub"],
-      parentId: parent.id,
     });
     expect(result.success).toBe(false);
     expect(result.message).toContain("completed parent");
   });
 
-  it("execute update works on sub-quests", () => {
+  it("execute update works on steps", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    log.addSubQuest("Sub", parent.id);
+    log.addStep("Sub", parent.id);
     const result = log.execute({
       type: QUEST_ACTIONS.update,
       id: "02",
       description: "Updated sub",
     });
     expect(result.success).toBe(true);
-    expect(log.getSubQuests(parent.id)[0]?.description).toBe("Updated sub");
+    expect(log.getSteps(parent.id)[0]?.description).toBe("Updated sub");
   });
 
-  it("execute reorder returns sub-quest error", () => {
+  it("execute reorder returns step error", () => {
     const log = new QuestLog();
     const a = log.add("A");
     const b = log.add("B");
-    const sub = log.addSubQuest("Sub", a.id);
+    const step = log.addStep("Sub", a.id);
     const result = log.execute({
       type: QUEST_ACTIONS.reorder,
-      id: sub.id,
+      id: step.id,
       targetId: b.id,
     });
     expect(result.success).toBe(false);
-    expect(result.message).toContain("sub-quest");
+    expect(result.message).toContain("step");
   });
 
-  it("execute toggle returns blocked error when parent has incomplete sub-quests", () => {
+  it("execute toggle returns blocked error when parent has incomplete steps", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    log.addSubQuest("Sub", parent.id);
+    log.addStep("Sub", parent.id);
     const result = log.execute({ type: QUEST_ACTIONS.toggle, id: parent.id });
     expect(result.success).toBe(false);
-    expect(result.message).toContain("incomplete sub-quests");
+    expect(result.message).toContain("incomplete steps");
     expect(log.getAll()[0]!.done).toBe(false);
   });
 
-  it("execute delete returns blocked error when parent has incomplete sub-quests", () => {
+  it("execute delete returns blocked error when parent has incomplete steps", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
-    log.addSubQuest("Sub", parent.id);
+    log.addStep("Sub", parent.id);
     const result = log.execute({ type: QUEST_ACTIONS.delete, id: parent.id });
     expect(result.success).toBe(false);
-    expect(result.message).toContain("incomplete sub-quests");
+    expect(result.message).toContain("incomplete steps");
     expect(log.getAll()).toHaveLength(2);
   });
 });

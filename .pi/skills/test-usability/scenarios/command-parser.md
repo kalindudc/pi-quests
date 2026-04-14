@@ -1,6 +1,6 @@
 # Command Parser Edge Cases
 
-Goal: Verify the `/quests` CLI parser handles `--parent` correctly, rejects malformed inputs with helpful messages, and does not crash.
+Goal: Verify the `/quests` CLI parser handles `add-step` correctly, rejects malformed inputs with helpful messages, and does not crash.
 
 Precondition: At least one top-level quest must exist to serve as a valid parent. If none exist, create one with `/quests add "CLI Parent"` before proceeding.
 
@@ -9,15 +9,15 @@ Precondition: At least one top-level quest must exist to serve as a valid parent
 1. Identify a valid parent with `/quests list` or `quest list`.
    - Record any top-level quest ID as `CLI_PARENT_ID`.
 
-2. Run `/quests add --parent CLI_PARENT_ID "CLI sub"`.
-   - Expected: subquest created under the specified parent and listing shows it indented.
+2. Run `/quests add-step CLI_PARENT_ID "CLI step"`.
+   - Expected: step created under the specified parent and listing shows it indented.
    - Record status and response message.
 
-3. Run `/quests add --parent CLI_PARENT_ID` with no trailing description.
+3. Run `/quests add-step CLI_PARENT_ID` with no trailing description.
    - Expected: error showing correct usage.
    - Record verbatim message.
 
-4. Run `/quests add --parent xyz "desc"` where `xyz` is not a valid hex ID.
+4. Run `/quests add-step xyz "desc"` where `xyz` is not a valid hex ID.
    - Expected: error about invalid ID format or usage hint.
    - Record verbatim message.
 
@@ -39,5 +39,5 @@ Precondition: At least one top-level quest must exist to serve as a valid parent
 
 ## Cleanup
 
-Delete any quests created for this scenario including the CLI subquest from step 2.
+Delete any quests created for this scenario including the CLI steps from steps 2.
 Confirm the list is clean of test artifacts.

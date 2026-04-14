@@ -4,7 +4,7 @@ import { logger } from "../logger.js";
 import {
   formatAddResult,
   formatBatchAddResult,
-  formatBlockedBySubQuests,
+  formatBlockedBySteps,
   formatDeleteResult,
   formatDescriptionRequiredError,
   formatEmptyDescriptionsError,
@@ -17,13 +17,13 @@ import {
   formatQuestList,
   formatReorderedQuestNotFoundError,
   formatReorderNotFoundError,
-  formatSubQuestCannotHaveSubQuests,
+  formatStepCannotHaveSteps,
   formatTargetIdRequiredError,
   formatToggleResult,
   formatUnknownActionError,
   formatUpdateResult,
 } from "./formatters.js";
-import { QUEST_ACTIONS, type Quest, type SubQuest } from "./types.js";
+import { QUEST_ACTIONS, type Quest, type Step } from "./types.js";
 
 export type HistoryEntry =
   | { type: typeof QUEST_ACTIONS.add; id: string; parentId?: string }
@@ -31,18 +31,18 @@ export type HistoryEntry =
   | { type: typeof QUEST_ACTIONS.update; id: string; previousDescription: string }
   | {
       type: typeof QUEST_ACTIONS.delete;
-      quest: Quest | SubQuest;
+      quest: Quest | Step;
       index: number;
-      isSubQuest?: boolean;
-      cascadeDeletedSubs?: SubQuest[];
+      isStep?: boolean;
+      cascadeDeletedSteps?: Step[];
     }
   | {
       type: typeof QUEST_ACTIONS.clear;
       previousQuests: Quest[];
-      previousSubQuests?: SubQuest[];
+      previousSteps?: Step[];
       all: false;
     }
-  | { type: typeof QUEST_ACTIONS.clear; quests: Quest[]; subQuests?: SubQuest[]; all: true }
+  | { type: typeof QUEST_ACTIONS.clear; quests: Quest[]; steps?: Step[]; all: true }
   | {
       type: typeof QUEST_ACTIONS.reorder;
       quest: Quest;
@@ -52,7 +52,9 @@ export type HistoryEntry =
     };
 
 export type QuestAction =
-  | { type: typeof QUEST_ACTIONS.add; descriptions?: string[]; parentId?: string }
+  | { type: typeof QUEST_ACTIONS.add; descriptions?: string[] }
+  | { type: typeof QUEST_ACTIONS.split; id?: string; descriptions?: string[] }
+  | { type: typeof QUEST_ACTIONS.add_step; id?: string; descriptions?: string[] }
   | { type: typeof QUEST_ACTIONS.list }
   | { type: typeof QUEST_ACTIONS.toggle; id?: string }
   | { type: typeof QUEST_ACTIONS.update; id?: string; description?: string }
@@ -71,7 +73,7 @@ export type QuestOperationResult = { success: boolean; message: string; quest?: 
  */
 export class QuestLog {
   private quests: Quest[] = [];
-  private subQuests: SubQuest[] = [];
+  private steps: Step[] = [];
   private usedIds: Set<string> = new Set();
   private history: HistoryEntry[] = [];
 
@@ -108,12 +110,12 @@ export class QuestLog {
   } = {
     [QUEST_ACTIONS.add]: (entry) => {
       this.quests = this.quests.filter((q) => q.id !== entry.id);
-      this.subQuests = this.subQuests.filter((q) => q.id !== entry.id);
+      this.steps = this.steps.filter((q) => q.id !== entry.id);
       this.usedIds.delete(entry.id);
 
       logger.debug("quests:state", "revert-add", {
         id: entry.id,
-        total: this.quests.length + this.subQuests.length,
+        total: this.quests.length + this.steps.length,
       });
       return { success: true, message: `Reverted add quest [${entry.id}]` };
     },
@@ -141,13 +143,13 @@ export class QuestLog {
       return { success: false, message: formatNotFound(entry.id) };
     },
     [QUEST_ACTIONS.delete]: (entry) => {
-      if (entry.isSubQuest) {
-        this.subQuests.splice(entry.index, 0, entry.quest as unknown as SubQuest);
+      if (entry.isStep) {
+        this.steps.splice(entry.index, 0, entry.quest as Step);
       } else {
         this.quests.splice(entry.index, 0, entry.quest);
-        if (entry.cascadeDeletedSubs) {
-          for (const sub of entry.cascadeDeletedSubs) {
-            this.subQuests.push(sub);
+        if (entry.cascadeDeletedSteps) {
+          for (const sub of entry.cascadeDeletedSteps) {
+            this.steps.push(sub);
             this.usedIds.add(sub.id);
           }
         }
@@ -157,7 +159,7 @@ export class QuestLog {
       logger.debug("quests:state", "revert-delete", {
         id: entry.quest.id,
         index: entry.index,
-        total: this.quests.length + this.subQuests.length,
+        total: this.quests.length + this.steps.length,
       });
       return { success: true, message: `Reverted delete for quest [${entry.quest.id}]` };
     },
@@ -165,11 +167,11 @@ export class QuestLog {
       if ("previousQuests" in entry) {
         const restoredCount =
           entry.previousQuests.length +
-          (entry.previousSubQuests?.length ?? 0) -
-          (this.quests.length + this.subQuests.length);
+          (entry.previousSteps?.length ?? 0) -
+          (this.quests.length + this.steps.length);
         this.quests = [...entry.previousQuests];
-        this.subQuests = [...(entry.previousSubQuests ?? [])];
-        this.usedIds = new Set([...this.quests, ...this.subQuests].map((q) => q.id));
+        this.steps = [...(entry.previousSteps ?? [])];
+        this.usedIds = new Set([...this.quests, ...this.steps].map((q) => q.id));
 
         return {
           success: true,
@@ -178,8 +180,8 @@ export class QuestLog {
       }
 
       this.quests = [...entry.quests];
-      this.subQuests = [...(entry.subQuests ?? [])];
-      this.usedIds = new Set([...this.quests, ...this.subQuests].map((q) => q.id));
+      this.steps = [...(entry.steps ?? [])];
+      this.usedIds = new Set([...this.quests, ...this.steps].map((q) => q.id));
 
       return { success: true, message: `Reverted clear (${entry.quests.length} quests restored)` };
     },
@@ -199,38 +201,38 @@ export class QuestLog {
   };
 
   /*
-   * Returns all quests including sub-quests, inserted in order
-   * sub-quests are returned immediately after their parent quest
+   * Returns all quests including steps, inserted in order
+   * steps are returned immediately after their parent quest
    */
   getAll(): Quest[] {
     const result: Quest[] = [];
     for (const q of this.quests) {
       result.push(q);
-      result.push(...this.subQuests.filter((sq) => sq.parentId === q.id));
+      result.push(...this.steps.filter((step) => step.parentId === q.id));
     }
     return result;
   }
 
   /*
-   * Returns only top-level quests. Sub-quests should be accessed via `getSubQuests()`.
+   * Returns only top-level quests. Steps should be accessed via `getSteps()`.
    */
   getQuests(): Quest[] {
     return [...this.quests];
   }
 
   /*
-   * Returns sub-quests for a given parent quest ID. Sub-quests are not included in `getQuests()`.
+   * Returns steps for a given parent quest ID. Steps are not included in `getQuests()`.
    */
-  getSubQuests(parentId: string): SubQuest[] {
-    return this.subQuests.filter((sq) => sq.parentId === parentId);
+  getSteps(parentId: string): Step[] {
+    return this.steps.filter((step) => step.parentId === parentId);
   }
 
-  getParentQuest(subQuest: SubQuest): Quest | undefined {
-    return this.quests.find((q) => q.id === subQuest.parentId);
+  getParent(step: Step): Quest | undefined {
+    return this.quests.find((q) => q.id === step.parentId);
   }
 
-  private findById(id: string): Quest | SubQuest | undefined {
-    return this.quests.find((q) => q.id === id) ?? this.subQuests.find((sq) => sq.id === id);
+  private findById(id: string): Quest | Step | undefined {
+    return this.quests.find((q) => q.id === id) ?? this.steps.find((step) => step.id === id);
   }
 
   getUsedIds(): string[] {
@@ -256,9 +258,9 @@ export class QuestLog {
     return quest;
   }
 
-  addSubQuest(description: string, parentId: string): SubQuest {
-    if (this.subQuests.some((sq) => sq.id === parentId)) {
-      throw new Error(formatSubQuestCannotHaveSubQuests(parentId));
+  addStep(description: string, parentId: string): Step {
+    if (this.steps.some((step) => step.id === parentId)) {
+      throw new Error(formatStepCannotHaveSteps(parentId));
     }
     const parent = this.quests.find((q) => q.id === parentId);
     if (!parent) {
@@ -267,25 +269,39 @@ export class QuestLog {
     if (parent.done) {
       throw new Error(formatParentDoneError(parentId));
     }
-    const subQuest: SubQuest = {
+    const step: Step = {
       id: this.generateId(),
       description,
       done: false,
       createdAt: Date.now(),
       parentId,
     };
-    this.subQuests.push(subQuest);
-    this.history.push({ type: QUEST_ACTIONS.add, id: subQuest.id, parentId });
-    logger.debug("quests:state", "add-subquest", {
-      id: subQuest.id,
+    this.steps.push(step);
+    this.history.push({ type: QUEST_ACTIONS.add, id: step.id, parentId });
+    logger.debug("quests:state", "add-step", {
+      id: step.id,
       parentId,
       description,
-      totalSubQuests: this.subQuests.length,
+      totalSteps: this.steps.length,
     });
-    return subQuest;
+    return step;
   }
 
-  toggle(id: string): Quest | SubQuest | null | undefined {
+  split(id: string, descriptions: string[]): Step[] {
+    if (this.steps.some((step) => step.id === id)) {
+      throw new Error(formatStepCannotHaveSteps(id));
+    }
+    const parent = this.quests.find((q) => q.id === id);
+    if (!parent) throw new Error(formatNotFound(id));
+    if (parent.done) throw new Error(formatParentDoneError(id));
+    const created: Step[] = [];
+    for (const desc of descriptions) {
+      created.push(this.addStep(desc, id));
+    }
+    return created;
+  }
+
+  toggle(id: string): Quest | Step | null | undefined {
     const quest = this.findById(id);
     if (!quest) {
       logger.debug("quests:state", "toggle-not-found", { id });
@@ -293,9 +309,9 @@ export class QuestLog {
     }
 
     if (!quest.done && !("parentId" in quest)) {
-      const subs = this.getSubQuests(id);
-      if (subs.some((q) => !q.done)) {
-        logger.debug("quests:state", "toggle-blocked-subquests", { id });
+      const steps = this.getSteps(id);
+      if (steps.some((q) => !q.done)) {
+        logger.debug("quests:state", "toggle-blocked-steps", { id });
         return null;
       }
     }
@@ -306,12 +322,12 @@ export class QuestLog {
     logger.debug("quests:state", QUEST_ACTIONS.toggle, {
       id,
       done: quest.done,
-      total: this.quests.length + this.subQuests.length,
+      total: this.quests.length + this.steps.length,
     });
     return quest;
   }
 
-  update(id: string, description: string): Quest | SubQuest | undefined {
+  update(id: string, description: string): Quest | Step | undefined {
     const quest = this.findById(id);
     if (!quest) {
       logger.debug("quests:state", "update-not-found", { id });
@@ -324,26 +340,26 @@ export class QuestLog {
     logger.debug("quests:state", QUEST_ACTIONS.update, {
       id,
       description,
-      total: this.quests.length + this.subQuests.length,
+      total: this.quests.length + this.steps.length,
     });
     return quest;
   }
 
-  delete(id: string): Quest | SubQuest | null | undefined {
+  delete(id: string): Quest | Step | null | undefined {
     const index = this.quests.findIndex((q) => q.id === id);
     if (index !== -1) {
-      const subs = this.getSubQuests(id);
-      if (subs.some((q) => !q.done)) {
-        logger.debug("quests:state", "delete-blocked-subquests", { id });
+      const steps = this.getSteps(id);
+      if (steps.some((q) => !q.done)) {
+        logger.debug("quests:state", "delete-blocked-steps", { id });
         return null;
       }
       const [quest] = this.quests.splice(index, 1);
       this.usedIds.delete(quest.id);
-      const cascadeDeletedSubs = this.subQuests.filter((sq) => sq.parentId === id);
-      this.history.push({ type: QUEST_ACTIONS.delete, quest, index, cascadeDeletedSubs });
-      this.subQuests = this.subQuests.filter((sq) => {
-        if (sq.parentId === id) {
-          this.usedIds.delete(sq.id);
+      const cascadeDeletedSteps = this.steps.filter((step) => step.parentId === id);
+      this.history.push({ type: QUEST_ACTIONS.delete, quest, index, cascadeDeletedSteps });
+      this.steps = this.steps.filter((step) => {
+        if (step.parentId === id) {
+          this.usedIds.delete(step.id);
           return false;
         }
         return true;
@@ -351,19 +367,19 @@ export class QuestLog {
       logger.debug("quests:state", QUEST_ACTIONS.delete, {
         id,
         index,
-        total: this.quests.length + this.subQuests.length,
+        total: this.quests.length + this.steps.length,
       });
       return quest;
     }
-    const subIndex = this.subQuests.findIndex((sq) => sq.id === id);
-    if (subIndex !== -1) {
-      const [quest] = this.subQuests.splice(subIndex, 1);
+    const stepIndex = this.steps.findIndex((step) => step.id === id);
+    if (stepIndex !== -1) {
+      const [quest] = this.steps.splice(stepIndex, 1);
       this.usedIds.delete(quest.id);
-      this.history.push({ type: QUEST_ACTIONS.delete, quest, index: subIndex, isSubQuest: true });
+      this.history.push({ type: QUEST_ACTIONS.delete, quest, index: stepIndex, isStep: true });
       logger.debug("quests:state", QUEST_ACTIONS.delete, {
         id,
-        index: subIndex,
-        total: this.quests.length + this.subQuests.length,
+        index: stepIndex,
+        total: this.quests.length + this.steps.length,
       });
       return quest;
     }
@@ -375,41 +391,45 @@ export class QuestLog {
     if (!all) {
       const doneParentIds = new Set(this.quests.filter((q) => q.done).map((q) => q.id));
       const done = this.quests.filter((q) => q.done);
-      const removedSubs = this.subQuests.filter((sq) => sq.done || doneParentIds.has(sq.parentId));
-      const keptSubs = this.subQuests.filter((sq) => !sq.done && !doneParentIds.has(sq.parentId));
+      const removedSteps = this.steps.filter(
+        (step) => step.done || doneParentIds.has(step.parentId),
+      );
+      const keptSteps = this.steps.filter(
+        (step) => !step.done && !doneParentIds.has(step.parentId),
+      );
       const previousQuests = [...this.quests];
-      const previousSubQuests = [...this.subQuests];
+      const previousSteps = [...this.steps];
       for (const q of done) this.usedIds.delete(q.id);
-      for (const q of removedSubs) this.usedIds.delete(q.id);
+      for (const q of removedSteps) this.usedIds.delete(q.id);
       this.quests = this.quests.filter((q) => !q.done);
-      this.subQuests = keptSubs;
+      this.steps = keptSteps;
       this.history.push({
         type: QUEST_ACTIONS.clear,
         previousQuests,
-        previousSubQuests,
+        previousSteps,
         all: false,
       });
-      const count = done.length + removedSubs.length;
+      const count = done.length + removedSteps.length;
       logger.debug("quests:state", QUEST_ACTIONS.clear, { count, all });
       return count;
     }
-    const count = this.quests.length + this.subQuests.length;
+    const count = this.quests.length + this.steps.length;
     this.history.push({
       type: QUEST_ACTIONS.clear,
       quests: [...this.quests],
-      subQuests: [...this.subQuests],
+      steps: [...this.steps],
       all: true,
     });
     this.quests = [];
-    this.subQuests = [];
+    this.steps = [];
     this.usedIds.clear();
     logger.debug("quests:state", QUEST_ACTIONS.clear, { count, all });
     return count;
   }
 
   reorder(id: string, targetId: string): Quest | undefined {
-    if (this.subQuests.some((sq) => sq.id === id || sq.id === targetId)) {
-      logger.debug("quests:state", "reorder-subquest-rejected", { id, targetId });
+    if (this.steps.some((step) => step.id === id || step.id === targetId)) {
+      logger.debug("quests:state", "reorder-step-rejected", { id, targetId });
       return undefined;
     }
     const idx = this.quests.findIndex((q) => q.id === id);
@@ -441,7 +461,7 @@ export class QuestLog {
     logger.debug("quests:state", QUEST_ACTIONS.reorder, {
       id: quest.id,
       targetId,
-      total: this.quests.length + this.subQuests.length,
+      total: this.quests.length + this.steps.length,
     });
 
     return quest;
@@ -479,30 +499,10 @@ export class QuestLog {
               message: formatEmptyDescriptionsError(),
             };
           }
-          if (action.parentId) {
-            if (this.subQuests.some((sq) => sq.id === action.parentId)) {
-              return {
-                success: false,
-                message: formatSubQuestCannotHaveSubQuests(action.parentId),
-              };
-            }
-            const parent = this.quests.find((q) => q.id === action.parentId);
-            if (!parent) {
-              return { success: false, message: formatNotFound(action.parentId) };
-            }
-            if (parent.done) {
-              return {
-                success: false,
-                message: formatParentDoneError(action.parentId),
-              };
-            }
-          }
           if (action.descriptions.length === 1) {
             try {
               const [firstDesc] = action.descriptions;
-              const q = action.parentId
-                ? this.addSubQuest(firstDesc, action.parentId)
-                : this.add(firstDesc);
+              const q = this.add(firstDesc);
 
               return { success: true, message: formatAddResult(q) };
             } catch (err) {
@@ -515,7 +515,7 @@ export class QuestLog {
           try {
             const added: { id: string; description: string }[] = [];
             for (const desc of action.descriptions) {
-              const q = action.parentId ? this.addSubQuest(desc, action.parentId) : this.add(desc);
+              const q = this.add(desc);
               added.push({ id: q.id, description: q.description });
             }
 
@@ -546,7 +546,7 @@ export class QuestLog {
           return { success: false, message: formatNotFound(action.id) };
         }
         if (q === null) {
-          return { success: false, message: formatBlockedBySubQuests(action.id) };
+          return { success: false, message: formatBlockedBySteps(action.id) };
         }
 
         return { success: true, message: formatToggleResult(action.id, q.done), quest: q };
@@ -577,7 +577,7 @@ export class QuestLog {
           return { success: false, message: formatNotFound(action.id) };
         }
         if (q === null) {
-          return { success: false, message: formatBlockedBySubQuests(action.id) };
+          return { success: false, message: formatBlockedBySteps(action.id) };
         }
 
         return { success: true, message: formatDeleteResult(q), quest: q };
@@ -601,6 +601,30 @@ export class QuestLog {
         if (!q) return { success: false, message: formatReorderNotFoundError() };
 
         return { success: true, message: `Reordered quest [${q.id}]: ${q.description}`, quest: q };
+      }
+      case QUEST_ACTIONS.split:
+      case QUEST_ACTIONS.add_step: {
+        if (action.id === undefined) {
+          return { success: false, message: formatIdRequiredError("split") };
+        }
+        if (!action.descriptions || action.descriptions.length === 0) {
+          return { success: false, message: formatMissingDescriptionsError("split") };
+        }
+        if (action.descriptions.some((d) => !d || d.trim().length === 0)) {
+          return { success: false, message: formatEmptyDescriptionsError() };
+        }
+        try {
+          const steps = this.split(action.id, action.descriptions);
+          return {
+            success: true,
+            message: `Split quest [${action.id}] into ${steps.length} steps`,
+          };
+        } catch (err) {
+          return {
+            success: false,
+            message: `Error: ${err instanceof Error ? err.message : String(err)}`,
+          };
+        }
       }
       case QUEST_ACTIONS.revert: {
         return this.revert();
@@ -637,18 +661,16 @@ export class QuestLog {
 
       if (Array.isArray(quests)) {
         this.quests = (quests as Quest[]).filter((q) => !("parentId" in q && q.parentId));
-        this.subQuests = (quests as Quest[]).filter(
-          (q) => "parentId" in q && q.parentId,
-        ) as unknown as SubQuest[];
+        this.steps = (quests as Quest[]).filter((q) => "parentId" in q && q.parentId) as Step[];
       } else {
         this.quests = [];
-        this.subQuests = [];
+        this.steps = [];
       }
-      this.usedIds = new Set([...this.quests, ...this.subQuests].map((q) => q.id));
+      this.usedIds = new Set([...this.quests, ...this.steps].map((q) => q.id));
       logger.debug("quests:state", "reconstruct", { toolResults, questCount });
     } else {
       this.quests = [];
-      this.subQuests = [];
+      this.steps = [];
       this.usedIds.clear();
       logger.debug("quests:state", "reconstruct-empty", { toolResults });
     }

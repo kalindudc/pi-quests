@@ -31,7 +31,7 @@ Precondition: Session quest log may have existing items. This scenario creates t
    - Verify with `quest list`.
 
 8. Use `quest` tool with `action: "revert"`.
-   - Expected: restored quest is toggled back to undone.
+   - Expected: restored quest is toggled back to done (reverting the earlier toggle-to-undone).
    - Verify with `quest list` if needed.
 
 9. Use `quest` tool with `action: "add"` and `descriptions: ["Beta"]`.

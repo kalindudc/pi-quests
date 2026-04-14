@@ -1,6 +1,6 @@
 # Batch Add, Clear, and Reorder
 
-Goal: Verify batch creation of quests and subquests, clear semantics, orphan prevention, and top-level reordering with revert.
+Goal: Verify batch creation of quests and steps, clear semantics, orphan prevention, and top-level reordering with revert.
 
 Precondition: Use fresh quests for this scenario. Clear the log with `all: true` first if needed to reduce noise.
 
@@ -11,13 +11,13 @@ Precondition: Use fresh quests for this scenario. Clear the log with `all: true`
    - Record message and presence check.
 
 2. Add top-level quest `"Batch Parent"` and record ID as `BP_ID`.
-   Then use `quest` action `"add"` with `descriptions: ["Sub A", "Sub B"]` and `parentId: BP_ID`.
-   - Expected: both subquests appear indented under `"Batch Parent"`.
-   - Record message and subquest count under `BP_ID`.
+   Then use `quest` action `"split"` with `id: BP_ID` and `descriptions: ["Sub A", "Sub B"]`.
+   - Expected: both steps appear indented under `"Batch Parent"`.
+   - Record message and step count under `BP_ID`.
 
 3. Toggle `"Batch C"` (or any one top-level batch quest) to done, leave the rest undone.
    Then use `quest` action `"clear"` without setting `all`.
-   - Expected: only the done quest is removed. `"Batch A"`, `"Batch B"`, `"Batch Parent"`, and its subquests remain.
+   - Expected: only the done quest is removed. `"Batch A"`, `"Batch B"`, `"Batch Parent"`, and its steps remain.
    - Verify by listing and counting survivors (expect 4).
    - Record clear message and survivor count.
 
@@ -27,15 +27,15 @@ Precondition: Use fresh quests for this scenario. Clear the log with `all: true`
    - Record message and confirmation.
 
 5. Add top-level quest `"Orphan Parent"` and record ID as `OP_ID`.
-   Add subquest `"Orphan Sub"` under `OP_ID` and leave it undone.
+   Use `quest` action `"split"` with `id: OP_ID` and `descriptions: ["Orphan Step"]` and leave it undone.
    Toggle `OP_ID` done.
    Then use `quest` action `"clear"` without `all`.
-   - Expected: the incomplete subquest must NOT become an invisible orphan.
+   - Expected: the incomplete step must NOT become an invisible orphan — it should be removed along with the done parent.
    - **CRITICAL:** invisible orphans indicate a serious state-management bug.
-   - Record presence or absence of `"Orphan Sub"` in the list after clear.
+   - Verify `"Orphan Step"` is absent from the list after clear.
 
 6. Use `quest` action `"clear"` with `all: true`.
-   - Expected: all quests and subquests removed.
+   - Expected: all quests and steps removed.
    - Record message and confirmation via listing.
 
 7. Add quests `"Reorder A"`, `"Reorder B"`, `"Reorder C"`.
@@ -49,9 +49,9 @@ Precondition: Use fresh quests for this scenario. Clear the log with `all: true`
    - Verify with `quest list`.
    - Record message and confirmed order.
 
-9. Add parent `"P"` and subquest `"S"` under it. Record IDs.
-   Attempt `quest` action `"reorder"` using the subquest ID as either `id` or `targetId`.
-   - Expected: failure mentioning subquests are not allowed.
+9. Add parent `"P"` and use `quest` action `"split"` with `id: P_ID` and `descriptions: ["S"]` under it. Record IDs.
+   Attempt `quest` action `"reorder"` using the step ID as either `id` or `targetId`.
+   - Expected: failure mentioning steps are not allowed.
    - Record message.
 
 ## Cleanup

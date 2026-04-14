@@ -22,18 +22,25 @@
 { "action": "add", "descriptions": ["Task A", "Task B", "Task C"] }
 ```
 
-## Add a sub-quest
+## Split a quest into steps
 
 **Via command:**
 
 ```bash
-/quests add --parent 0a Write unit tests
+/quests add-step 0a Write unit tests
 ```
 
 **Via tool:**
 
 ```json
-{ "action": "add", "descriptions": ["Write unit tests"], "parentId": "0a" }
+{ "action": "split", "id": "0a", "descriptions": ["Write unit tests"] }
+```
+
+The `add_step` tool action is an alias for `split`.
+**Via tool (alias):**
+
+```json
+{ "action": "add_step", "id": "0a", "descriptions": ["Write unit tests"] }
 ```
 
 ## Toggle completion
@@ -89,7 +96,7 @@ Only the most recent mutating action is reverted.
 Opens a paginated widget showing:
 - progress bar
 - checked/unchecked quest rows
-- indented sub-quest rows
+- indented step rows
 - page navigation (`Tab` / `Shift+Tab`)
 
 ## Recover quests after a branch switch

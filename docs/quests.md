@@ -21,20 +21,20 @@ interface Quest {
 
 IDs are generated as random hex strings (2 characters by default) and are restored during session reconstruction.
 
-## Sub-quests
+## Steps
 
-A **sub-quest** is a quest that belongs to a parent top-level quest. Sub-quests are useful for breaking large tasks into smaller, trackable steps.
+A **step** is a quest that belongs to a parent top-level quest. Steps are useful for breaking large tasks into smaller, trackable pieces.
 
 ```typescript
-interface SubQuest extends Quest {
+interface Step extends Quest {
   parentId: string;
 }
 ```
 
-- Sub-quests are displayed indented beneath their parent quest.
-- A parent quest cannot be marked done until all its sub-quests are completed.
-- A parent quest cannot be deleted until all its sub-quests are completed (deleting a done parent cascade-deletes its done sub-quests).
-- Sub-quests cannot have nested sub-quests of their own.
+- Steps are displayed indented beneath their parent quest.
+- A parent quest cannot be marked done until all its steps are completed.
+- A parent quest cannot be deleted until all its steps are completed (deleting a done parent cascade-deletes its done steps).
+- Steps cannot have nested steps of their own.
 
 ## History and revert
 
@@ -43,7 +43,7 @@ Every mutating action (`add`, `toggle`, `update`, `delete`, `clear`, `reorder`) 
 - `add` → removes the added quest
 - `toggle` → flips the done flag back
 - `update` → restores the previous description
-- `delete` → reinserts the quest at its original index (restores cascade-deleted sub-quests as well)
+- `delete` → reinserts the quest at its original index (restores cascade-deleted steps as well)
 - `clear` → restores the full quest array and used IDs
 - `reorder` → restores the original quest order and IDs
 

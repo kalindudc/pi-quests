@@ -7,8 +7,8 @@
  *   3. RECOVERY HINT — suggest the next valid action the caller can take
  *
  * Example:
- *   "Quest [01] has incomplete sub-quests. A parent quest can only be marked
- *    done after all its sub-quests are complete. Try toggling the sub-quests first."
+ *   "Quest [01] has incomplete steps. A parent quest can only be marked
+ *    done after all its steps are complete. Try toggling the steps first."
  *
  * Keep messages actionable. Agents should never be left guessing why something
  * failed or what to do next.
@@ -56,20 +56,20 @@ export function formatNotFound(id: string): string {
   return `Quest [${id}] not found. IDs are random hex strings shown in brackets. Use the list action to see valid IDs.`;
 }
 
-export function formatBlockedBySubQuests(id: string): string {
-  return `Quest [${id}] has incomplete sub-quests. A parent quest can only be marked done or deleted after all its sub-quests are complete. Toggle the sub-quests first, or delete them if they are no longer needed.`;
+export function formatBlockedBySteps(id: string): string {
+  return `Quest [${id}] has incomplete steps. A parent quest can only be marked done or deleted after all its steps are complete. Toggle the steps first, or delete them if they are no longer needed.`;
 }
 
-export function formatSubQuestCannotHaveSubQuests(id: string): string {
-  return `Sub-quest [${id}] cannot have nested sub-quests. The quest system only supports one level of nesting. Use a top-level quest as the parent instead.`;
+export function formatStepCannotHaveSteps(id: string): string {
+  return `Step [${id}] cannot have nested steps. The quest system only supports one level of nesting. Use a top-level quest as the parent instead.`;
 }
 
 export function formatEmptyDescriptionsError(): string {
   return `Every description in a batch must be non-empty. Remove empty strings or split the batch into separate add calls.`;
 }
 
-export function formatMissingDescriptionsError(): string {
-  return `At least one description is required for the add action. Provide a description string to create a quest.`;
+export function formatMissingDescriptionsError(action = "add"): string {
+  return `At least one description is required for the ${action} action. Provide a description string to create a quest.`;
 }
 
 export function formatIdRequiredError(action: string): string {
@@ -85,7 +85,7 @@ export function formatTargetIdRequiredError(): string {
 }
 
 export function formatReorderNotFoundError(): string {
-  return `Quest not found or is a sub-quest. Reorder only works on top-level quests. Use the list action to verify the ID and ensure it is a top-level quest.`;
+  return `Quest not found or is a step. Reorder only works on top-level quests. Use the list action to verify the ID and ensure it is a top-level quest.`;
 }
 
 export function formatParentNotFoundError(id: string): string {
@@ -93,7 +93,7 @@ export function formatParentNotFoundError(id: string): string {
 }
 
 export function formatParentDoneError(id: string): string {
-  return `Cannot add a sub-quest to completed parent quest [${id}]. Sub-quests can only be added to open parents. Reopen the parent first if you need to add more work.`;
+  return `Cannot add a step to completed parent quest [${id}]. Steps can only be added to open parents. Reopen the parent first if you need to add more work.`;
 }
 
 export function formatUnknownActionError(action: string): string {

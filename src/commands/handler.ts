@@ -18,6 +18,7 @@ type MutatingCommand = Extract<
   {
     action:
       | typeof QUEST_ACTIONS.add
+      | typeof QUEST_ACTIONS.split
       | typeof QUEST_ACTIONS.toggle
       | typeof QUEST_ACTIONS.update
       | typeof QUEST_ACTIONS.delete
@@ -33,7 +34,11 @@ const commandActionBuilders: {
   [QUEST_ACTIONS.add]: (p) => ({
     type: QUEST_ACTIONS.add,
     descriptions: p.descriptions,
-    parentId: p.parentId,
+  }),
+  [QUEST_ACTIONS.split]: (p) => ({
+    type: QUEST_ACTIONS.split,
+    id: p.id,
+    descriptions: p.descriptions,
   }),
   [QUEST_ACTIONS.toggle]: (p) => ({ type: QUEST_ACTIONS.toggle, id: p.id }),
   [QUEST_ACTIONS.update]: (p) => ({
@@ -120,6 +125,7 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config
         return;
       }
       case QUEST_ACTIONS.add:
+      case QUEST_ACTIONS.split:
       case QUEST_ACTIONS.toggle:
       case QUEST_ACTIONS.update:
       case QUEST_ACTIONS.delete:
@@ -138,7 +144,8 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config
         logger.debug("quests:cmd", "help");
 
         const lines = ["Available /quests subcommands:"];
-        lines.push("  add [--parent <id>] <description>  - Add a new quest or sub-quest");
+        lines.push("  add <description>           - Add a new top-level quest");
+        lines.push("  add-step <id> <description> - Split a quest into a step");
         lines.push("  list               - List all quests");
         lines.push("  toggle <id>        - Toggle quest completion");
         lines.push("  delete <id>        - Delete a quest");

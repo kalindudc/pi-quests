@@ -16,11 +16,10 @@
 
 ```typescript
 {
-  action: "add" | "list" | "toggle" | "update" | "delete" | "clear" | "reorder" | "revert",
+  action: "add" | "split" | "add_step" | "list" | "toggle" | "update" | "delete" | "clear" | "reorder" | "revert",
   descriptions?: string[],
   description?: string,
   id?: string,
-  parentId?: string,
   targetId?: string,
   all?: boolean
 }
@@ -28,7 +27,9 @@
 
 | Action | Required params | Behavior |
 |--------|----------------|----------|
-| `add` | `descriptions[]` | Adds one or many quests (required). Use `parentId` to add sub-quests. |
+| `add` | `descriptions[]` | Adds one or many top-level quests (required). |
+| `split` | `id`, `descriptions[]` | Breaks a quest into steps under it. |
+| `add_step` | `id`, `descriptions[]` | Alias for `split`. |
 | `list` | — | Returns all quests as plain text |
 | `toggle` | `id` | Flips `done` flag for the given quest |
 | `update` | `id`, `description` | Changes a quest description |
@@ -50,7 +51,8 @@
 
 | Subcommand | Usage | Behavior |
 |------------|-------|----------|
-| `add` | `/quests add [--parent <id>] <description>` | Add a quest or sub-quest |
+| `add` | `/quests add <description>` | Add a top-level quest |
+| `add-step` | `/quests add-step <id> <description>` | Split a quest into a step |
 | `list` | `/quests list` | Open interactive quest list widget |
 | `toggle` | `/quests toggle <id>` | Toggle quest completion |
 | `update` | `/quests update <id> <description>` | Update description |

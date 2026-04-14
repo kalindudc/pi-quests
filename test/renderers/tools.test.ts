@@ -140,10 +140,10 @@ describe("renderQuestResult", () => {
     expect(getText(result)).toContain("All clear");
   });
 
-  it("renders sub-quests indented without positional numbers", () => {
+  it("renders steps indented without positional numbers", () => {
     const log = new QuestLog();
     log.add("Parent");
-    log.addSubQuest("Sub", "01");
+    log.addStep("Sub", "01");
     const toolResult: AgentToolResult<unknown> = {
       content: [{ type: "text", text: "" }],
       details: {
@@ -158,11 +158,11 @@ describe("renderQuestResult", () => {
     expect(text).not.toContain("#2");
   });
 
-  it("adds blank lines around sub-quest groups", () => {
+  it("adds blank lines around step groups", () => {
     const log = new QuestLog();
     log.add("Parent A");
-    log.addSubQuest("Sub A1", "01");
-    log.addSubQuest("Sub A2", "01");
+    log.addStep("Sub A1", "01");
+    log.addStep("Sub A2", "01");
     log.add("Parent B");
     const toolResult: AgentToolResult<unknown> = {
       content: [{ type: "text", text: "" }],

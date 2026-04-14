@@ -18,13 +18,7 @@ export function createQuestParams(idLength: number) {
         description: "New description (required for update action)",
       }),
     ),
-    parentId: Type.Optional(
-      Type.String({
-        pattern,
-        description:
-          "Parent quest hex ID. Use this to break a large task into smaller, trackable steps. When provided, the added quest becomes a sub-quest under the parent.",
-      }),
-    ),
+
     id: Type.Optional(
       Type.String({
         pattern,

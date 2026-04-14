@@ -77,7 +77,7 @@ export default function (pi: ExtensionAPI): void {
     const activeQuestCount = activeQuests.length;
     const activeTopLevel = activeQuests.filter((q) => !(q as { parentId?: string }).parentId);
     const hasTopLevelQuestWithoutSubs = activeTopLevel.some(
-      (q) => !allQuests.some((sq) => (sq as { parentId?: string }).parentId === q.id),
+      (q) => !allQuests.some((step) => (step as { parentId?: string }).parentId === q.id),
     );
     const nudge = tracker.getNudge(activeQuestCount, latestPrompt, hasTopLevelQuestWithoutSubs);
 

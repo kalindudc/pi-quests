@@ -11,6 +11,8 @@ export const QUEST_ACTIONS = {
   clear: "clear",
   reorder: "reorder",
   revert: "revert",
+  split: "split",
+  add_step: "add_step",
 } as const;
 
 export const QUEST_ACTION_VALUES = [
@@ -22,6 +24,8 @@ export const QUEST_ACTION_VALUES = [
   QUEST_ACTIONS.clear,
   QUEST_ACTIONS.reorder,
   QUEST_ACTIONS.revert,
+  QUEST_ACTIONS.split,
+  QUEST_ACTIONS.add_step,
 ] as const;
 
 export type QuestActionType = (typeof QUEST_ACTION_VALUES)[number];
@@ -33,6 +37,6 @@ export interface Quest {
   createdAt: number;
 }
 
-export interface SubQuest extends Quest {
+export interface Step extends Quest {
   parentId: string;
 }

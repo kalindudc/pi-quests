@@ -4,7 +4,7 @@ import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import type { Quest } from "../quest/types.js";
 import { QUEST_ACTIONS } from "../quest/types.js";
-import { formatQuestRow, formatSubQuestSpacerLine } from "./quests.js";
+import { formatQuestRow, formatStepSpacerLine } from "./quests.js";
 
 type QuestArgs = {
   action: string;
@@ -76,7 +76,7 @@ export function renderQuestResult(config: ResolvedConfig) {
     const parents = quests.filter((q) => !(q as Quest & { parentId?: string }).parentId);
     const lines: string[] = [];
 
-    function getSubQuests(parentId: string) {
+    function getSteps(parentId: string) {
       return quests.filter((q) => (q as Quest & { parentId?: string }).parentId === parentId);
     }
 
@@ -85,8 +85,8 @@ export function renderQuestResult(config: ResolvedConfig) {
         const p = parents[j];
         if (renderedIds.has(p.id)) return true;
 
-        const subs = getSubQuests(p.id).filter((sq) => renderedIds.has(sq.id));
-        if (subs.length > 0) return true;
+        const steps = getSteps(p.id).filter((step) => renderedIds.has(step.id));
+        if (steps.length > 0) return true;
       }
 
       return false;
@@ -95,20 +95,20 @@ export function renderQuestResult(config: ResolvedConfig) {
     for (let i = 0; i < parents.length; i++) {
       const parent = parents[i];
       const parentIncluded = renderedIds.has(parent.id);
-      const includedSubs = getSubQuests(parent.id).filter((sq) => renderedIds.has(sq.id));
+      const includedSteps = getSteps(parent.id).filter((step) => renderedIds.has(step.id));
 
-      if (!parentIncluded && includedSubs.length === 0) continue;
+      if (!parentIncluded && includedSteps.length === 0) continue;
 
       if (parentIncluded) {
         lines.push(formatQuestRow(theme, parent, config.ids.length, i + 1));
-        if (includedSubs.length > 0) lines.push(formatSubQuestSpacerLine(theme, config.ids.length));
+        if (includedSteps.length > 0) lines.push(formatStepSpacerLine(theme, config.ids.length));
       }
 
-      for (const sub of includedSubs) {
-        lines.push(formatQuestRow(theme, sub, config.ids.length));
+      for (const step of includedSteps) {
+        lines.push(formatQuestRow(theme, step, config.ids.length));
       }
 
-      if (includedSubs.length > 0 && willRenderLater(i)) {
+      if (includedSteps.length > 0 && willRenderLater(i)) {
         lines.push("");
       }
     }

@@ -129,16 +129,16 @@ describe("quest behavior", () => {
       expect(getText(result.content[0]!)).toContain("Reverted clear");
     });
 
-    it("end-to-end adds parent and sub-quest, blocks parent toggle, toggles sub-quest, then toggles parent", async () => {
+    it("end-to-end adds parent and step, blocks parent toggle, toggles step, then toggles parent", async () => {
       const log = new QuestLog();
       await questToolExecute(log, "tc1", {
         action: QUEST_ACTIONS.add,
         descriptions: ["Parent"],
       });
       await questToolExecute(log, "tc2", {
-        action: QUEST_ACTIONS.add,
+        action: QUEST_ACTIONS.split,
+        id: "01",
         descriptions: ["Sub"],
-        parentId: "01",
       });
       expect(log.getAll()).toHaveLength(2);
 
@@ -146,7 +146,7 @@ describe("quest behavior", () => {
         action: QUEST_ACTIONS.toggle,
         id: "01",
       });
-      expect(getText(blocked.content[0]!)).toContain("incomplete sub-quests");
+      expect(getText(blocked.content[0]!)).toContain("incomplete steps");
       expect(log.getAll()[0]!.done).toBe(false);
 
       await questToolExecute(log, "tc4", {

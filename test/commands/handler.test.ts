@@ -212,27 +212,27 @@ describe("createQuestsHandler", () => {
     expect(ctx.ui.notify).toHaveBeenCalledWith("Cleared 1 quests", "info");
   });
 
-  it("shows blocked error when toggling parent with incomplete sub-quests", async () => {
+  it("shows blocked error when toggling parent with incomplete steps", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add Parent", ctx);
-    await handler("add --parent 01 Sub", ctx);
+    await handler("add-step 01 Sub", ctx);
     await handler("toggle 01", ctx);
     expect(ctx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining("Quest [01] has incomplete sub-quests"),
+      expect.stringContaining("Quest [01] has incomplete steps"),
       "error",
     );
     expect(ctx.ui.notify).not.toHaveBeenCalledWith("Quest [01] done", "info");
   });
 
-  it("shows blocked error when deleting parent with incomplete sub-quests", async () => {
+  it("shows blocked error when deleting parent with incomplete steps", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add Parent", ctx);
-    await handler("add --parent 01 Sub", ctx);
+    await handler("add-step 01 Sub", ctx);
     await handler("delete 01", ctx);
     expect(ctx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining("Quest [01] has incomplete sub-quests"),
+      expect.stringContaining("Quest [01] has incomplete steps"),
       "error",
     );
     expect(ctx.ui.notify).not.toHaveBeenCalledWith("Deleted quest [01]: Parent", "info");

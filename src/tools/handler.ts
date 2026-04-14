@@ -5,6 +5,15 @@ import { logger } from "../logger.js";
 import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "../prompts.js";
 import { makeToolResult, type QuestAction, type QuestLog } from "../quest/dataplane.js";
 import { QUEST_ACTIONS } from "../quest/types.js";
+
+const SPLIT_DISPLAY_ACTIONS = [
+  QUEST_ACTIONS.add,
+  QUEST_ACTIONS.list,
+  QUEST_ACTIONS.split,
+  QUEST_ACTIONS.add_step,
+  QUEST_ACTIONS.revert,
+] as const;
+
 import { renderQuestCall, renderQuestResult } from "../renderers/tools.js";
 import { createQuestParams, type QuestParamsType } from "./params.js";
 
@@ -21,7 +30,20 @@ const toolHandlers: {
     return runTool(questLog, toolCallId, {
       type: QUEST_ACTIONS.add,
       descriptions: params.descriptions,
-      parentId: params.parentId,
+    });
+  },
+  [QUEST_ACTIONS.split](questLog, params, toolCallId) {
+    return runTool(questLog, toolCallId, {
+      type: QUEST_ACTIONS.split,
+      id: params.id,
+      descriptions: params.descriptions,
+    });
+  },
+  [QUEST_ACTIONS.add_step](questLog, params, toolCallId) {
+    return runTool(questLog, toolCallId, {
+      type: QUEST_ACTIONS.add_step,
+      id: params.id,
+      descriptions: params.descriptions,
     });
   },
   [QUEST_ACTIONS.list](questLog, _params, toolCallId) {
@@ -63,14 +85,13 @@ function runTool(
   const result = questLog.execute(action);
   logger.debug("quests:tool", "execute-complete", { toolCallId, success: result.success });
 
-  const displayQuests =
-    action.type === QUEST_ACTIONS.add ||
-    action.type === QUEST_ACTIONS.list ||
-    action.type === QUEST_ACTIONS.revert
-      ? questLog.getAll()
-      : result.quest
-        ? [result.quest]
-        : undefined;
+  const displayQuests = SPLIT_DISPLAY_ACTIONS.includes(
+    action.type as (typeof SPLIT_DISPLAY_ACTIONS)[number],
+  )
+    ? questLog.getAll()
+    : result.quest
+      ? [result.quest]
+      : undefined;
 
   return makeToolResult(result.message, questLog, displayQuests);
 }
@@ -95,9 +116,9 @@ export function registerQuestTool(
     name: "quest",
     label: "Quest",
     description:
-      "Manage the session quest log including top-level quests and sub-quests. Use this VERY frequently to track tasks, plans, and progress throughout the conversation.",
+      "Manage the session quest log including top-level quests and steps. Use this VERY frequently to track tasks, plans, and progress throughout the conversation.",
     promptSnippet:
-      "Add (with optional parentId for sub-quests), list, toggle, update, delete, clear, or revert quest items",
+      "Add, split (add_step), list, toggle, update, delete, clear, or revert quest items",
     promptGuidelines: [...QUEST_PROMPT_GATE, ...QUEST_PROMPT_REMINDER],
     parameters: createQuestParams(config.ids.length),
     execute: (toolCallId, params, _signal, _onUpdate, _ctx) =>

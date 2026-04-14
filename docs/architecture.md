@@ -133,7 +133,8 @@ Because every tool result stores `details: { quests, usedIds }`, the entire `Que
 
 ```typescript
 export type QuestAction =
-  | { type: "add"; descriptions?: string[]; parentId?: string }
+  | { type: "add"; descriptions?: string[] }
+  | { type: "split"; id?: string; descriptions?: string[] }
   | { type: "list" }
   | { type: "toggle"; id?: string }
   | { type: "update"; id?: string; description?: string }
@@ -154,11 +155,12 @@ Every mutating action pushes a typed `HistoryEntry` onto a stack. Calling `rever
 
 | Action | History entry | Revert behavior |
 |--------|---------------|-----------------|
-| `add` | `{ type: "add", id, parentId? }` | Removes the added quest or sub-quest; restores used ID |
+| `add` | `{ type: "add", id }` | Removes the added quest; restores used ID |
+| `split` | `{ type: "split", id, descriptions }` | Removes the added steps one by one (no custom history entry) |
 | `toggle` | `{ type: "toggle", id }` | Flips the `done` flag back |
 | `update` | `{ type: "update", id, previousDescription }` | Restores the previous description |
-| `delete` | `{ type: "delete", quest, index, isSubQuest?, cascadeDeletedSubs? }` | Reinserts the quest at its original index; restores cascade-deleted sub-quests |
-| `clear` | `{ type: "clear", previousQuests, previousSubQuests?, all }` or `{ quests, subQuests?, all }` | Restores the full quest array and used IDs |
+| `delete` | `{ type: "delete", quest, index, isStep?, cascadeDeletedSteps? }` | Reinserts the quest at its original index; restores cascade-deleted steps |
+| `clear` | `{ type: "clear", previousQuests, previousSteps?, all }` or `{ quests, steps?, all }` | Restores the full quest array and used IDs |
 | `reorder` | `{ type: "reorder", quest, oldIndex, previousIds, targetId }` | Restores the original order and IDs |
 
 The revert logic is implemented as a typed `undoHandlers` map — one handler per `HistoryEntry` type — rather than an if-chain.

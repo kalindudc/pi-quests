@@ -3,7 +3,7 @@ import { Key, matchesKey, truncateToWidth, visibleWidth } from "@mariozechner/pi
 import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import type { QuestLog } from "../quest/dataplane.js";
-import { formatQuestRow, formatSubQuestSpacerLine } from "./quests.js";
+import { formatQuestRow, formatStepSpacerLine } from "./quests.js";
 
 export class QuestListWidget {
   private cachedWidth?: number;
@@ -50,17 +50,17 @@ export class QuestListWidget {
 
     for (let i = 0; i < parents.length; i++) {
       const parent = parents[i];
-      const subs = this.questLog.getSubQuests(parent.id);
+      const steps = this.questLog.getSteps(parent.id);
 
       const row = formatQuestRow(th, parent, this.config.ids.length, i + 1);
       lines.push(width > 0 ? truncateToWidth(row, width) : row);
 
-      if (subs.length > 0) {
-        lines.push(formatSubQuestSpacerLine(th, this.config.ids.length));
+      if (steps.length > 0) {
+        lines.push(formatStepSpacerLine(th, this.config.ids.length));
 
-        for (const sub of subs) {
-          const subRow = formatQuestRow(th, sub, this.config.ids.length);
-          lines.push(width > 0 ? truncateToWidth(subRow, width) : subRow);
+        for (const step of steps) {
+          const stepRow = formatQuestRow(th, step, this.config.ids.length);
+          lines.push(width > 0 ? truncateToWidth(stepRow, width) : stepRow);
         }
 
         lines.push("");

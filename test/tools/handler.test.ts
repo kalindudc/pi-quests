@@ -37,15 +37,28 @@ describe("questToolExecute", () => {
     );
   });
 
-  it("adds a sub-quest with parentId", async () => {
+  it("splits a quest into a step", async () => {
     const log = createLog();
     log.add("Parent");
     const result = await questToolExecute(log, "tc1", {
-      action: QUEST_ACTIONS.add,
+      action: QUEST_ACTIONS.split,
+      id: "01",
       descriptions: ["Sub"],
-      parentId: "01",
     });
-    expect(getText(result.content[0]!)).toContain("Added quest [02]: Sub");
+    expect(getText(result.content[0]!)).toContain("Split quest [01] into 1 steps");
+    const details = result.details as { quests: unknown[] };
+    expect(details.quests).toHaveLength(2);
+  });
+
+  it("add_step is an alias for split", async () => {
+    const log = createLog();
+    log.add("Parent");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.add_step,
+      id: "01",
+      descriptions: ["Sub"],
+    });
+    expect(getText(result.content[0]!)).toContain("Split quest [01] into 1 steps");
     const details = result.details as { quests: unknown[] };
     expect(details.quests).toHaveLength(2);
   });
@@ -186,21 +199,21 @@ describe("questToolExecute", () => {
     expect(log.getAll()[0]!.description).toBe("B");
   });
 
-  it("toggle blocked when parent has incomplete sub-quests", async () => {
+  it("toggle blocked when parent has incomplete steps", async () => {
     const log = createLog();
     log.add("Parent");
-    log.addSubQuest("Sub", "01");
+    log.addStep("Sub", "01");
     const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.toggle, id: "01" });
-    expect(getText(result.content[0]!)).toContain("incomplete sub-quests");
+    expect(getText(result.content[0]!)).toContain("incomplete steps");
     expect(log.getAll()[0]!.done).toBe(false);
   });
 
-  it("delete blocked when parent has incomplete sub-quests", async () => {
+  it("delete blocked when parent has incomplete steps", async () => {
     const log = createLog();
     log.add("Parent");
-    log.addSubQuest("Sub", "01");
+    log.addStep("Sub", "01");
     const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: "01" });
-    expect(getText(result.content[0]!)).toContain("incomplete sub-quests");
+    expect(getText(result.content[0]!)).toContain("incomplete steps");
     expect(log.getAll()).toHaveLength(2);
   });
 });
