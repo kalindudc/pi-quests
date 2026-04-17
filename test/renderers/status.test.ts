@@ -36,4 +36,13 @@ describe("QuestStatusWidget", () => {
     widget.update(log, ui, mockTheme);
     expect(ui.setStatus).toHaveBeenCalledWith("pi-quests", expect.stringContaining("★"));
   });
+
+  it("does not call setStatus when disabled via the enabled flag", () => {
+    const widget = new QuestStatusWidget("󰣏", false);
+    const ui = { setStatus: vi.fn() };
+    const log = new QuestLog();
+    log.add("One");
+    widget.update(log, ui, mockTheme);
+    expect(ui.setStatus).not.toHaveBeenCalled();
+  });
 });

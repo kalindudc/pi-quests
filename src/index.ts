@@ -6,7 +6,6 @@ import { DEFAULT_CONFIG, getConfig, type ResolvedConfig } from "./config.js";
 import { logger } from "./logger.js";
 import { QUEST_PROMPT_GATE } from "./prompts.js";
 import { QuestLog } from "./quest/dataplane.js";
-import { formatQuestList } from "./quest/formatters.js";
 import { QuestUsageTracker } from "./quest/tracker.js";
 import { questChangelogRenderer } from "./renderers/changelog.js";
 import { QuestStatusWidget } from "./renderers/status.js";
@@ -22,11 +21,20 @@ import { registerQuestTool } from "./tools/handler.js";
  * - Snapshot relevant session state at each quest milestone.
  * - Provide rollback support to restore a previous snapshot.
  */
+const NO_QUESTS_REMINDER =
+  "No active quests. Use the quest tool to track your work. Use action: 'skill' for usage documentation.";
+
+const FAKE_DONE_REMINDER =
+  "QUEST REMINDER: A quest has a completion marker appended to its description but is not toggled done. Use the list action to find it, then toggle it done. NEVER append completion markers via update.";
+
 export default function (pi: ExtensionAPI): void {
   let questLog = new QuestLog();
   let tracker = new QuestUsageTracker(DEFAULT_CONFIG);
   let config: ResolvedConfig = DEFAULT_CONFIG;
-  let statusWidget = new QuestStatusWidget(DEFAULT_CONFIG.display.icon);
+  let statusWidget = new QuestStatusWidget(
+    DEFAULT_CONFIG.display.icon,
+    DEFAULT_CONFIG.display.showStatus,
+  );
 
   const shortcutKey = getConfig({ cwd: process.cwd() }).shortcuts?.openQuests ?? "ctrl+shift+l";
   logger.debug("quests:shortcut", "register", { key: shortcutKey });
@@ -49,8 +57,9 @@ export default function (pi: ExtensionAPI): void {
     config = getConfig(ctx);
     questLog = new QuestLog(config);
     tracker = new QuestUsageTracker(config);
-    statusWidget = new QuestStatusWidget(config.display.icon);
+    statusWidget = new QuestStatusWidget(config.display.icon, config.display.showStatus);
     questLog.reconstructFromSession(ctx);
+    if (questLog.getAll().length > 0) tracker.markQuestToolUsed();
     statusWidget.update(questLog, ctx.ui, ctx.ui.theme);
 
     registerQuestTool(pi, questLog, config);
@@ -66,6 +75,7 @@ export default function (pi: ExtensionAPI): void {
 
   pi.on("session_tree", async (_event, ctx) => {
     questLog.reconstructFromSession(ctx);
+    if (questLog.getAll().length > 0) tracker.markQuestToolUsed();
     statusWidget.update(questLog, ctx.ui, ctx.ui.theme);
   });
 
@@ -79,6 +89,7 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("context", async (event) => {
+    if (!config.nudges.enable) return undefined;
     const latestPrompt = event.messages
       .filter((m) => m.role === "user")
       .map((m) => (typeof m.content === "string" ? m.content : ""))
@@ -91,44 +102,28 @@ export default function (pi: ExtensionAPI): void {
     const hasTopLevelQuestWithoutSubs = activeTopLevel.some(
       (q) => !allQuests.some((step) => (step as { parentId?: string }).parentId === q.id),
     );
-    const nudge = tracker.getNudge(
-      activeQuestCount,
-      allQuests,
-      latestPrompt,
-      hasTopLevelQuestWithoutSubs,
-    );
+    const nudge = tracker.getNudge(activeQuestCount, latestPrompt, hasTopLevelQuestWithoutSubs);
 
     const fakeDoneRegex = new RegExp(config.validation.fakeDonePattern, "i");
     const fakeDone = questLog.getAll().find((q) => !q.done && fakeDoneRegex.test(q.description));
     if (!nudge && !fakeDone) return undefined;
 
-    let content = nudge ?? "";
-    if (fakeDone) {
-      content += `\nQUEST REMINDER: Quest [${fakeDone.id}] has a completion marker appended to its description but is not toggled done. Use the toggle action to mark it done. NEVER append completion markers to descriptions via the update action.`;
-    }
+    const parts: string[] = [];
+    if (nudge) parts.push(nudge);
+    if (fakeDone) parts.push(FAKE_DONE_REMINDER);
 
     const reminder: UserMessage = {
       role: "user",
-      content: content.trim(),
+      content: parts.join("\n"),
       timestamp: Date.now(),
     };
     return { messages: [...event.messages, reminder] };
   });
 
   pi.on("before_agent_start", async (event) => {
-    const quests = questLog.getAll();
-    let reminder = "";
-    if (quests.length > 0) {
-      const remaining = quests.filter((q) => !q.done).length;
-      const list = formatQuestList(quests);
-      reminder = `Active quests (${remaining}/${quests.length}):\n${list}\n\nKeep quest progress updated as you work.`;
-    } else {
-      reminder =
-        "No active quests. Use the quest tool to track your work. Use action: 'skill' for usage documentation.";
-    }
-
+    if (tracker.hasUsedQuestTool) return undefined;
     return {
-      systemPrompt: `# Quest Management\n${QUEST_PROMPT_GATE}${event.systemPrompt}\n\n## Quest Management\n${reminder}`,
+      systemPrompt: `# Quest Management\n${QUEST_PROMPT_GATE}${event.systemPrompt}\n\n## Quest Management\n${NO_QUESTS_REMINDER}`,
     };
   });
 

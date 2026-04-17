@@ -26,9 +26,11 @@ Add a `pi-quests` key to your settings file:
     "display": {
       "pageSize": 10,
       "progressBarMaxWidth": 24,
-      "icon": "󰣏"
+      "icon": "󰣏",
+      "showStatus": true
     },
     "nudges": {
+      "enable": true,
       "initializationThreshold": 3,
       "hintIntervalMinutes": 8,
       "timeBasedToolCallThreshold": 3,
@@ -61,6 +63,14 @@ Add a `pi-quests` key to your settings file:
 
 ## Options reference
 
+### nudges.enable
+
+Master switch for the `context` event handler. When `false`, pi-quests never injects synthetic user messages (nudges OR fake-done reminders). System-prompt injection via `before_agent_start` is unaffected.
+
+| Default | Type |
+|---------|------|
+| `true` | `boolean` |
+
 ### ids.length
 
 Length of generated quest IDs in hex characters. Affects both the tool schema regex and command parser validation.
@@ -92,6 +102,14 @@ Icon displayed in the footer status widget. Any string is accepted, including Ne
 | Default | Type |
 |---------|------|
 | `󰣏` | `string` |
+
+### display.showStatus
+
+Controls whether the quest status widget is rendered in the footer. When `false`, pi-quests never calls `ui.setStatus` — the footer slot stays empty regardless of quest count.
+
+| Default | Type |
+|---------|------|
+| `true` | `boolean` |
 
 ### nudges.initializationThreshold
 

@@ -185,7 +185,9 @@ The revert logic is implemented as a typed `undoHandlers` map — one handler pe
 
 ### Prompt injection
 
-On `before_agent_start`, the extension prepends a high-salience `# Quest Management` gate to the system prompt (exploiting primacy bias), then appends a reminder block with active quests (exploiting recency). This creates an instruction sandwich that nudges the agent to track work as specific, actionable quests before any file reads or edits.
+On `before_agent_start`, the extension prepends a high-salience `# Quest Management` gate to the system prompt (exploiting primacy bias), then appends a reminder block (exploiting recency). This creates an instruction sandwich that nudges the agent to track work as specific, actionable quests before any file reads or edits.
+
+To preserve prompt-cache hits, the injection is single-serve and fully static: the `# Quest Management` section (a fixed prefix gate plus a constant no-quests reminder) is included only until the agent's first `quest` tool call (or until session resume reconstructs an existing quest log, which seeds the same flag). After that, `before_agent_start` returns `undefined` and the `## Quest Management` section disappears for the rest of the session. The reminder text never embeds counts, IDs, or per-session interpolation, so cache keys remain stable across turns. Synthetic context-handler reminders (nudges and fake-done warnings) are likewise constant strings — set `pi-quests.nudges.enable: false` to opt out of context injection entirely.
 
 The `quest` tool registration also supplies `promptSnippet` and `promptGuidelines`, which the framework injects into the default system prompt when the tool is active.
 

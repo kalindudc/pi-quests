@@ -5,13 +5,18 @@ export class QuestStatusWidget {
   private readonly key = "pi-quests";
   private readonly barWidth = 5;
 
-  constructor(private readonly icon: string) {}
+  constructor(
+    private readonly icon: string,
+    private readonly enabled: boolean = true,
+  ) {}
 
   update(
     questLog: QuestLog,
     ui: { setStatus(key: string, text: string | undefined): void },
     theme: Theme,
   ): void {
+    if (!this.enabled) return;
+
     const all = questLog.getAll();
     const total = all.length;
     const done = all.filter((q) => q.done).length;

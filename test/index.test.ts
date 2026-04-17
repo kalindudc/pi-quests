@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 
@@ -27,7 +30,7 @@ describe("extension entry point", () => {
     expect(result.systemPrompt).toContain("Use action: 'skill' for usage documentation");
   });
 
-  it("includes active quests in the reminder", async () => {
+  it("suppresses Quest Management on resume when reconstructed quests exist (seed path)", async () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
     init(pi as unknown as ExtensionAPI);
@@ -54,9 +57,58 @@ describe("extension entry point", () => {
         },
       },
     );
+    // Seed path fired during reconstruction (questLog.getAll().length > 0),
+    // so before_agent_start returns undefined to suppress the static suffix.
     const result = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
-    expect(result.systemPrompt).toContain("Test task");
-    expect(result.systemPrompt).toContain("Keep quest progress updated");
+    expect(result).toBeUndefined();
+  });
+
+  it("suppresses Quest Management after first quest tool use", async () => {
+    const pi = createMockPi();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as ExtensionAPI);
+    // Before first quest tool use, suffix is injected.
+    const before = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
+    expect(before.systemPrompt).toContain("Quest Management");
+    // After first quest tool execution, suffix is suppressed.
+    await pi._handlers.tool_execution_end[0](
+      { toolName: "quest" },
+      {
+        ui: {
+          setStatus: vi.fn(),
+          theme: { fg: vi.fn((_, t) => t), bold: vi.fn((t) => t), strikethrough: vi.fn((t) => t) },
+        },
+      },
+    );
+    const after = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
+    expect(after).toBeUndefined();
+  });
+
+  it("nudges.enable=false short-circuits context handler even after many tool calls", async () => {
+    const pi = createMockPi();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as ExtensionAPI);
+    // Create an isolated project dir with .pi/settings.json that disables nudges.
+    const cwd = mkdtempSync(join(tmpdir(), "pi-quests-test-"));
+    mkdirSync(join(cwd, ".pi"), { recursive: true });
+    writeFileSync(
+      join(cwd, ".pi", "settings.json"),
+      JSON.stringify({ "pi-quests": { nudges: { enable: false } } }),
+    );
+    await pi._handlers.session_start[0](
+      {},
+      {
+        cwd,
+        sessionManager: { getBranch: vi.fn().mockReturnValue([]) },
+        ui: {
+          setStatus: vi.fn(),
+          theme: { fg: vi.fn((_, t) => t), bold: vi.fn((t) => t), strikethrough: vi.fn((t) => t) },
+        },
+      },
+    );
+    for (let i = 0; i < 8; i++) await pi._handlers.tool_execution_end[0]({ toolName: "read" });
+    const result = await pi._handlers.context[0]({ messages: [] });
+    expect(result).toBeUndefined();
   });
 
   it("nudges via context after 8 non-quest tools with 0 active quests", async () => {
@@ -109,6 +161,43 @@ describe("extension entry point", () => {
       "ctrl+shift+l",
       expect.objectContaining({ description: "Open quest list" }),
     );
+  });
+
+  it("does not set status when display.showStatus=false even if quests exist", async () => {
+    const pi = createMockPi();
+    const setStatus = vi.fn();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as ExtensionAPI);
+    const cwd = mkdtempSync(join(tmpdir(), "pi-quests-test-"));
+    mkdirSync(join(cwd, ".pi"), { recursive: true });
+    writeFileSync(
+      join(cwd, ".pi", "settings.json"),
+      JSON.stringify({ "pi-quests": { display: { showStatus: false } } }),
+    );
+    const branch = [
+      {
+        type: "message",
+        message: {
+          role: "toolResult",
+          toolName: "quest",
+          details: {
+            quests: [{ id: "01", description: "Test task", done: false, createdAt: 1 }],
+          },
+        },
+      },
+    ];
+    await pi._handlers.session_start[0](
+      {},
+      {
+        cwd,
+        sessionManager: { getBranch: vi.fn().mockReturnValue(branch) },
+        ui: {
+          setStatus,
+          theme: { fg: vi.fn((_, t) => t), bold: vi.fn((t) => t), strikethrough: vi.fn((t) => t) },
+        },
+      },
+    );
+    expect(setStatus).not.toHaveBeenCalled();
   });
 
   it("sets status on session_start when quests exist", async () => {

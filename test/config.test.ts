@@ -94,6 +94,32 @@ describe("getConfig", () => {
     expect(config.ids.length).toBe(DEFAULT_CONFIG.ids.length);
   });
 
+  it("defaults display.showStatus to true and honors a user override", () => {
+    const ctxDefault = createMockContext(tempDir);
+    expect(getConfig(ctxDefault).display.showStatus).toBe(true);
+
+    writeGlobalSettings({
+      "pi-quests": {
+        display: { showStatus: false },
+      } as Partial<ResolvedConfig>,
+    });
+    const ctxOverride = createMockContext(tempDir);
+    expect(getConfig(ctxOverride).display.showStatus).toBe(false);
+  });
+
+  it("defaults nudges.enable to true and honors a user override", () => {
+    const ctxDefault = createMockContext(tempDir);
+    expect(getConfig(ctxDefault).nudges.enable).toBe(true);
+
+    writeGlobalSettings({
+      "pi-quests": {
+        nudges: { enable: false },
+      } as Partial<ResolvedConfig>,
+    });
+    const ctxOverride = createMockContext(tempDir);
+    expect(getConfig(ctxOverride).nudges.enable).toBe(false);
+  });
+
   it("deep-merges global and project settings", () => {
     const projectDir = join(tempDir, "project2");
     mkdirSync(join(projectDir, ".pi"), { recursive: true });

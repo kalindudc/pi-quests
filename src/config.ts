@@ -5,8 +5,9 @@ import { getAgentDir } from "@mariozechner/pi-coding-agent";
 
 export interface ResolvedConfig {
   ids: { length: number };
-  display: { pageSize: number; progressBarMaxWidth: number; icon: string };
+  display: { pageSize: number; progressBarMaxWidth: number; icon: string; showStatus: boolean };
   nudges: {
+    enable: boolean;
     toolCallThreshold: number;
     hintIntervalMinutes: number;
     timeBasedToolCallThreshold: number;
@@ -35,8 +36,9 @@ export const DEFAULT_FAKE_DONE_PATTERN = String.raw`\s[-\u2013\u2014]\s*(DONE|CO
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
   ids: { length: 2 },
-  display: { pageSize: 10, progressBarMaxWidth: 24, icon: "󰣏" },
+  display: { pageSize: 10, progressBarMaxWidth: 24, icon: "󰣏", showStatus: true },
   nudges: {
+    enable: true,
     toolCallThreshold: 8,
     hintIntervalMinutes: 4,
     timeBasedToolCallThreshold: 8,
@@ -115,8 +117,10 @@ export function getConfig(ctx: Pick<ExtensionContext, "cwd">): ResolvedConfig {
       progressBarMaxWidth:
         user.display?.progressBarMaxWidth ?? DEFAULT_CONFIG.display.progressBarMaxWidth,
       icon: user.display?.icon ?? DEFAULT_CONFIG.display.icon,
+      showStatus: user.display?.showStatus ?? DEFAULT_CONFIG.display.showStatus,
     },
     nudges: {
+      enable: user.nudges?.enable ?? DEFAULT_CONFIG.nudges.enable,
       toolCallThreshold: user.nudges?.toolCallThreshold ?? DEFAULT_CONFIG.nudges.toolCallThreshold,
       hintIntervalMinutes:
         user.nudges?.hintIntervalMinutes ?? DEFAULT_CONFIG.nudges.hintIntervalMinutes,
