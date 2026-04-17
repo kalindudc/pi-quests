@@ -32,8 +32,10 @@
     "LICENSE.md"
   ],
   "peerDependencies": {
+    "@mariozechner/pi-ai": "*",
     "@mariozechner/pi-coding-agent": "*",
-    "@mariozechner/pi-tui": "*"
+    "@mariozechner/pi-tui": "*",
+    "@sinclair/typebox": "*"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.10",
@@ -49,6 +51,6 @@
     "style": "biome check ./src ./test",
     "style:fix": "biome check --write --unsafe --no-errors-on-unmatched ./src ./test",
     "format": "biome format --write --no-errors-on-unmatched ./src ./test",
-    "prepublishOnly": "npm run typecheck && npm test"
+    "prepublishOnly": "npx tsc --noEmit && npx vitest run"
   }
 }

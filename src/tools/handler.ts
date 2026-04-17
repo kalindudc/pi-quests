@@ -134,7 +134,7 @@ export function registerQuestTool(
       "When you need to understand quests, steps, rules, or best practices, use action: 'skill' or action: 'rules'.",
     promptSnippet:
       "Manage quests and steps, or retrieve quest rules and best practices via skill/rules",
-    promptGuidelines: [...QUEST_PROMPT_GATE, ...QUEST_PROMPT_REMINDER],
+    promptGuidelines: [QUEST_PROMPT_GATE, ...QUEST_PROMPT_REMINDER],
     parameters: createQuestParams(config.ids.length),
     execute: (toolCallId, params, _signal, _onUpdate, _ctx) =>
       questToolExecute(questLog, toolCallId, params),

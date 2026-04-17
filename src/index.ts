@@ -4,7 +4,7 @@ import type { KeyId } from "@mariozechner/pi-tui";
 import { createQuestsHandler, openQuestList } from "./commands/handler.js";
 import { DEFAULT_CONFIG, getConfig, type ResolvedConfig } from "./config.js";
 import { logger } from "./logger.js";
-import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "./prompts.js";
+import { QUEST_PROMPT_GATE } from "./prompts.js";
 import { QuestLog } from "./quest/dataplane.js";
 import { formatQuestList } from "./quest/formatters.js";
 import { QuestUsageTracker } from "./quest/tracker.js";
@@ -79,7 +79,12 @@ export default function (pi: ExtensionAPI): void {
     const hasTopLevelQuestWithoutSubs = activeTopLevel.some(
       (q) => !allQuests.some((step) => (step as { parentId?: string }).parentId === q.id),
     );
-    const nudge = tracker.getNudge(activeQuestCount, latestPrompt, hasTopLevelQuestWithoutSubs);
+    const nudge = tracker.getNudge(
+      activeQuestCount,
+      allQuests,
+      latestPrompt,
+      hasTopLevelQuestWithoutSubs,
+    );
 
     const fakeDoneRegex = new RegExp(config.validation.fakeDonePattern, "i");
     const fakeDone = questLog.getAll().find((q) => !q.done && fakeDoneRegex.test(q.description));
@@ -106,7 +111,8 @@ export default function (pi: ExtensionAPI): void {
       const list = formatQuestList(quests);
       reminder = `Active quests (${remaining}/${quests.length}):\n${list}\n\nKeep quest progress updated as you work.`;
     } else {
-      reminder = `${QUEST_PROMPT_REMINDER.join("\n")}\n\nBefore adding any independent quests, clear any previously completed quests from the log to keep it focused on current work.`;
+      reminder =
+        "No active quests. Use the quest tool to track your work. Use action: 'skill' for usage documentation.";
     }
 
     return {

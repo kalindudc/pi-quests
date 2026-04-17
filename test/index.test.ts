@@ -24,13 +24,7 @@ describe("extension entry point", () => {
     const handler = pi._handlers.before_agent_start[0];
     const result = await handler({ systemPrompt: "base" });
     expect(result.systemPrompt).toContain("Quest Management");
-    expect(result.systemPrompt).toContain("VERY frequently");
-    expect(result.systemPrompt).toContain("critical that you toggle quests to done");
-    expect(result.systemPrompt).toContain(
-      "Before reading files, running commands, or making edits",
-    );
-    expect(result.systemPrompt).toContain("step");
-    expect(result.systemPrompt).toContain("split");
+    expect(result.systemPrompt).toContain("Use action: 'skill' for usage documentation");
   });
 
   it("includes active quests in the reminder", async () => {
