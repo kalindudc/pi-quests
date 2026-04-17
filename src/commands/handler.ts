@@ -8,7 +8,7 @@ import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import type { QuestAction, QuestLog } from "../quest/dataplane.js";
 import { QUEST_ACTIONS } from "../quest/types.js";
-import { QuestListWidget } from "../renderers/commands.js";
+import { invalidateQuestListWidget, QuestListWidget } from "../renderers/commands.js";
 import { CHANGELOG_PATH, getVersion } from "../version.js";
 import { reverseChangelog } from "./changelog.js";
 import { type ParsedArgs, parseQuestArgs } from "./parse-args.js";
@@ -73,7 +73,12 @@ export function openQuestList(
   );
 }
 
-export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config: ResolvedConfig) {
+export function createQuestsHandler(
+  pi: ExtensionAPI,
+  questLog: QuestLog,
+  config: ResolvedConfig,
+  onMutate?: (ctx: ExtensionCommandContext) => void,
+) {
   return async function handler(args: string, ctx: ExtensionCommandContext): Promise<void> {
     logger.debug("quests:cmd", "handler", { args, hasUI: ctx.hasUI });
 
@@ -144,6 +149,8 @@ export function createQuestsHandler(pi: ExtensionAPI, questLog: QuestLog, config
         const result = questLog.execute(action);
 
         logger.debug("quests:cmd", parsed.action, { success: result.success });
+        invalidateQuestListWidget();
+        onMutate?.(ctx);
         ctx.ui.notify(result.message, result.success ? "info" : "error");
         return;
       }

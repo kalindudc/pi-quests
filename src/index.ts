@@ -9,6 +9,7 @@ import { QuestLog } from "./quest/dataplane.js";
 import { formatQuestList } from "./quest/formatters.js";
 import { QuestUsageTracker } from "./quest/tracker.js";
 import { questChangelogRenderer } from "./renderers/changelog.js";
+import { QuestStatusWidget } from "./renderers/status.js";
 import { registerQuestTool } from "./tools/handler.js";
 
 /**
@@ -25,6 +26,7 @@ export default function (pi: ExtensionAPI): void {
   let questLog = new QuestLog();
   let tracker = new QuestUsageTracker(DEFAULT_CONFIG);
   let config: ResolvedConfig = DEFAULT_CONFIG;
+  let statusWidget = new QuestStatusWidget(DEFAULT_CONFIG.display.icon);
 
   const shortcutKey = getConfig({ cwd: process.cwd() }).shortcuts?.openQuests ?? "ctrl+shift+l";
   logger.debug("quests:shortcut", "register", { key: shortcutKey });
@@ -47,23 +49,33 @@ export default function (pi: ExtensionAPI): void {
     config = getConfig(ctx);
     questLog = new QuestLog(config);
     tracker = new QuestUsageTracker(config);
+    statusWidget = new QuestStatusWidget(config.display.icon);
     questLog.reconstructFromSession(ctx);
+    statusWidget.update(questLog, ctx.ui, ctx.ui.theme);
 
     registerQuestTool(pi, questLog, config);
 
-    const questsHandler = createQuestsHandler(pi, questLog, config);
+    const questsHandler = createQuestsHandler(pi, questLog, config, (ctx) => {
+      statusWidget.update(questLog, ctx.ui, ctx.ui.theme);
+    });
     pi.registerCommand("quests", {
       description: "Quest commands: /quests [help] to see usage",
       handler: questsHandler,
     });
   });
 
-  pi.on("session_tree", async (_event, ctx) => questLog.reconstructFromSession(ctx));
+  pi.on("session_tree", async (_event, ctx) => {
+    questLog.reconstructFromSession(ctx);
+    statusWidget.update(questLog, ctx.ui, ctx.ui.theme);
+  });
 
   pi.on("turn_start", async () => tracker.clearTurnNudge());
 
-  pi.on("tool_execution_end", async (event) => {
+  pi.on("tool_execution_end", async (event, ctx) => {
     tracker.onToolExecution(event.toolName);
+    if (event.toolName === "quest") {
+      statusWidget.update(questLog, ctx.ui, ctx.ui.theme);
+    }
   });
 
   pi.on("context", async (event) => {

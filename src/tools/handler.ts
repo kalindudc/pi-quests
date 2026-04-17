@@ -14,6 +14,7 @@ const SPLIT_DISPLAY_ACTIONS = [
   QUEST_ACTIONS.revert,
 ] as const;
 
+import { invalidateQuestListWidget } from "../renderers/commands.js";
 import { renderQuestCall, renderQuestResult } from "../renderers/tools.js";
 import { createQuestParams, type QuestParamsType } from "./params.js";
 
@@ -96,6 +97,7 @@ function runTool(
   action: QuestAction,
 ): AgentToolResult<unknown> {
   const result = questLog.execute(action);
+  invalidateQuestListWidget();
   logger.debug("quests:tool", "execute-complete", { toolCallId, success: result.success });
 
   const displayQuests = SPLIT_DISPLAY_ACTIONS.includes(

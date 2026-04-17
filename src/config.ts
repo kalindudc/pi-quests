@@ -5,7 +5,7 @@ import { getAgentDir } from "@mariozechner/pi-coding-agent";
 
 export interface ResolvedConfig {
   ids: { length: number };
-  display: { pageSize: number; progressBarMaxWidth: number };
+  display: { pageSize: number; progressBarMaxWidth: number; icon: string };
   nudges: {
     toolCallThreshold: number;
     hintIntervalMinutes: number;
@@ -35,7 +35,7 @@ export const DEFAULT_FAKE_DONE_PATTERN = String.raw`\s[-\u2013\u2014]\s*(DONE|CO
 
 export const DEFAULT_CONFIG: ResolvedConfig = {
   ids: { length: 2 },
-  display: { pageSize: 10, progressBarMaxWidth: 24 },
+  display: { pageSize: 10, progressBarMaxWidth: 24, icon: "󰣏" },
   nudges: {
     toolCallThreshold: 8,
     hintIntervalMinutes: 4,
@@ -114,6 +114,7 @@ export function getConfig(ctx: Pick<ExtensionContext, "cwd">): ResolvedConfig {
       pageSize: user.display?.pageSize ?? DEFAULT_CONFIG.display.pageSize,
       progressBarMaxWidth:
         user.display?.progressBarMaxWidth ?? DEFAULT_CONFIG.display.progressBarMaxWidth,
+      icon: user.display?.icon ?? DEFAULT_CONFIG.display.icon,
     },
     nudges: {
       toolCallThreshold: user.nudges?.toolCallThreshold ?? DEFAULT_CONFIG.nudges.toolCallThreshold,

@@ -27,6 +27,7 @@ graph LR
 
     index --> render_tools[renderers/tools.ts<br/>tool call/result TUI]
     index --> render_cmds[renderers/commands.ts<br/>QuestListWidget]
+    index --> render_status[renderers/status.ts<br/>QuestStatusWidget]
     index --> render_changelog[renderers/changelog.ts<br/>changelog message renderer]
 
     tool_handler --> dataplane
@@ -48,6 +49,7 @@ graph LR
 | `src/commands/handler.ts` | `/quests` command dispatcher |
 | `src/renderers/tools.ts` | TUI renderers for tool calls and results |
 | `src/renderers/commands.ts` | `QuestListWidget` — interactive paginated quest list |
+| `src/renderers/status.ts` | `QuestStatusWidget` — footer status line progress indicator |
 | `src/renderers/changelog.ts` | Message renderer for `quest-changelog` messages |
 | `src/logger.ts` | Namespaced debug logging |
 | `src/version.ts` | Version and changelog path constants |
@@ -115,13 +117,29 @@ sequenceDiagram
     participant pi as pi framework
     participant index as src/index.ts
     participant dataplane as quest/dataplane.ts
+    participant status as renderers/status.ts
 
     pi->>index: session_start / session_tree
     index->>dataplane: questLog.reconstructFromSession(ctx)
     dataplane->>dataplane: walk branch for latest quest toolResult
     dataplane->>dataplane: restore quests[] and usedIds from details
     dataplane-->>index: state restored
+    index->>status: statusWidget.update(questLog, ui, theme)
+    status-->>index: footer status refreshed
 ```
+
+### Status widget
+
+`QuestStatusWidget` (in `src/renderers/status.ts`) writes a compact progress indicator to the footer via `ctx.ui.setStatus("pi-quests", text)`. It updates on:
+- `session_start` and `session_tree` (after reconstruction)
+- `tool_execution_end` when the `quest` tool was executed
+- every mutating `/quests` command (via an `onMutate` callback)
+
+When no quests exist, the status is cleared (`undefined`) to avoid visual noise.
+
+### Widget invalidation
+
+`QuestListWidget` caches its rendered lines for performance. Because the widget instance is created inside `ctx.ui.custom()`, there was previously no way to invalidate the cache when quest state mutated from commands or tools. The fix keeps a module-level `activeQuestListWidget` reference and exports `invalidateQuestListWidget()`, which both the command handler and tool handler call after every mutating action.
 
 Because every tool result stores `details: { quests, usedIds }`, the entire `QuestLog` can be rebuilt by scanning the current session branch. No disk persistence is required, and quest state survives branch switches automatically.
 

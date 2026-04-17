@@ -26,10 +26,10 @@
 
 ### observability
 - [x] progress indicator for active quest (e.g., 3 of 7 complete)
-- [ ] quest status widget in footer or status line
+- [x] bug: quest log widget does not update when new quests are added until a key is pressed
+- [x] quest status widget in footer or status line
 - [ ] quest history view with timestamps
 - [ ] debug logging for snapshot/rollback operations
-- [ ] bug: quest log widget does not update when new quests are added until a key is pressed
 
 ### config and quality
 - [ ] configurable quest persistence (memory-only vs file-backed)

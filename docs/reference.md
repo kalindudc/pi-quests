@@ -9,6 +9,7 @@
 | `quest` | Tool | Add, list, toggle, update, delete, clear, reorder, or revert quests |
 | `/quests` | Command | User-facing quest commands |
 | `Quest shortcut` | Keybinding | Open the interactive quest list (default `ctrl+shift+l`) |
+| `Status widget` | UI | Footer progress indicator showing completed/total quests |
 
 ## Tool: `quest`
 
@@ -70,6 +71,15 @@
 | `help` | `/quests help` | Show subcommand list |
 
 Omitting the subcommand defaults to `list`.
+
+## Footer status widget
+
+A compact progress bar appears in the footer whenever quests exist. It shows:
+- a configurable icon (default `󰣏`)
+- a 5-character progress bar
+- the completion count (e.g. `6/10`)
+
+The widget updates automatically when quests change via tools, commands, or session reconstruction. When no quests remain, the footer status is hidden.
 
 ## Widget shortcuts
 

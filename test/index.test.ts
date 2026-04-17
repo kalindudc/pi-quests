@@ -45,7 +45,14 @@ describe("extension entry point", () => {
     ];
     await pi._handlers.session_start[0](
       {},
-      { cwd: "/tmp", sessionManager: { getBranch: vi.fn().mockReturnValue(branch) } },
+      {
+        cwd: "/tmp",
+        sessionManager: { getBranch: vi.fn().mockReturnValue(branch) },
+        ui: {
+          setStatus: vi.fn(),
+          theme: { fg: vi.fn((_, t) => t), bold: vi.fn((t) => t), strikethrough: vi.fn((t) => t) },
+        },
+      },
     );
     const result = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
     expect(result.systemPrompt).toContain("Test task");
@@ -101,6 +108,68 @@ describe("extension entry point", () => {
     expect(pi.registerShortcut).toHaveBeenCalledWith(
       "ctrl+shift+l",
       expect.objectContaining({ description: "Open quest list" }),
+    );
+  });
+
+  it("sets status on session_start when quests exist", async () => {
+    const pi = createMockPi();
+    const setStatus = vi.fn();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as ExtensionAPI);
+    const branch = [
+      {
+        type: "message",
+        message: {
+          role: "toolResult",
+          toolName: "quest",
+          details: {
+            quests: [
+              { id: "01", description: "A", done: true, createdAt: 1 },
+              { id: "02", description: "B", done: false, createdAt: 2 },
+            ],
+          },
+        },
+      },
+    ];
+    await pi._handlers.session_start[0](
+      {},
+      {
+        cwd: "/tmp",
+        sessionManager: { getBranch: vi.fn().mockReturnValue(branch) },
+        ui: {
+          setStatus,
+          theme: { fg: vi.fn((_, t) => t), bold: vi.fn((t) => t), strikethrough: vi.fn((t) => t) },
+        },
+      },
+    );
+    expect(setStatus).toHaveBeenCalledWith("pi-quests", expect.stringContaining("1/2"));
+  });
+
+  it("updates status after quest tool execution", async () => {
+    const pi = createMockPi();
+    const setStatus = vi.fn();
+    const { default: init } = await import("../src/index.js");
+    init(pi as unknown as ExtensionAPI);
+    await pi._handlers.session_start[0](
+      {},
+      {
+        cwd: "/tmp",
+        sessionManager: { getBranch: vi.fn().mockReturnValue([]) },
+        ui: {
+          setStatus,
+          theme: { fg: vi.fn((_, t) => t), bold: vi.fn((t) => t), strikethrough: vi.fn((t) => t) },
+        },
+      },
+    );
+    expect(setStatus).toHaveBeenLastCalledWith("pi-quests", undefined);
+    await pi._handlers.tool_execution_end[0](
+      { toolName: "quest" },
+      {
+        ui: {
+          setStatus,
+          theme: { fg: vi.fn((_, t) => t), bold: vi.fn((t) => t), strikethrough: vi.fn((t) => t) },
+        },
+      },
     );
   });
 });

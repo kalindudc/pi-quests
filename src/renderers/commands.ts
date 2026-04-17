@@ -5,6 +5,12 @@ import { logger } from "../logger.js";
 import type { QuestLog } from "../quest/dataplane.js";
 import { formatQuestRow, formatStepSpacerLine } from "./quests.js";
 
+let activeQuestListWidget: QuestListWidget | undefined;
+
+export function invalidateQuestListWidget(): void {
+  activeQuestListWidget?.invalidate();
+}
+
 export class QuestListWidget {
   private cachedWidth?: number;
   private cachedLines?: string[];
@@ -17,12 +23,14 @@ export class QuestListWidget {
     private readonly config: ResolvedConfig,
   ) {
     logger.debug("quests:widget", "create", { questCount: questLog.getAll().length });
+    activeQuestListWidget = this;
   }
 
   handleInput(data: string): void {
     logger.debug("quests:widget", "handleInput", { data });
     if (matchesKey(data, Key.escape) || data === "q" || data === "Q") {
       logger.debug("quests:widget", "close");
+      activeQuestListWidget = undefined;
       this.onClose();
       return;
     }
@@ -134,7 +142,7 @@ export class QuestListWidget {
       const barWidth = Math.min(width - 4, this.config.display.progressBarMaxWidth);
       const filled = Math.round((doneCount / total) * barWidth);
       const empty = barWidth - filled;
-      const bar = th.fg("success", "█".repeat(filled)) + th.fg("dim", "░".repeat(empty));
+      const bar = th.fg("success", "▰".repeat(filled)) + th.fg("dim", "▱".repeat(empty));
 
       lines.push(truncateToWidth(`  ${bar}  ${th.fg("muted", `${doneCount}/${total}`)}`, width));
       lines.push("");

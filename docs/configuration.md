@@ -25,7 +25,8 @@ Add a `pi-quests` key to your settings file:
     },
     "display": {
       "pageSize": 10,
-      "progressBarMaxWidth": 24
+      "progressBarMaxWidth": 24,
+      "icon": "󰣏"
     },
     "nudges": {
       "initializationThreshold": 3,
@@ -83,6 +84,14 @@ Maximum width of the mini progress bar in the quest list widget.
 | Default | Type | Range |
 |---------|------|-------|
 | 24 | `number` | 8-80 |
+
+### display.icon
+
+Icon displayed in the footer status widget. Any string is accepted, including NerdFont glyphs.
+
+| Default | Type |
+|---------|------|
+| `󰣏` | `string` |
 
 ### nudges.initializationThreshold
 
@@ -218,7 +227,8 @@ Useful when you expect more than ~250 quests in a session.
     },
     "display": {
       "pageSize": 15,
-      "progressBarMaxWidth": 32
+      "progressBarMaxWidth": 32,
+      "icon": "󰣏"
     },
     "nudges": {
       "initializationThreshold": 5,

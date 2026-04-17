@@ -42,6 +42,14 @@ describe("getConfig", () => {
     expect(getConfig(ctx)).toEqual(DEFAULT_CONFIG);
   });
 
+  it("allows overriding display.icon", () => {
+    const settingsPath = join(tempDir, ".pi", "settings.json");
+    mkdirSync(join(tempDir, ".pi"), { recursive: true });
+    writeFileSync(settingsPath, JSON.stringify({ "pi-quests": { display: { icon: "★" } } }));
+    const ctx = createMockContext(tempDir);
+    expect(getConfig(ctx).display.icon).toBe("★");
+  });
+
   it("applies shortcuts.openQuests override", () => {
     writeGlobalSettings({
       "pi-quests": {
