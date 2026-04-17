@@ -1,5 +1,9 @@
 version: '3'
 
+vars:
+  PKG:
+    sh: "command -v pnpm >/dev/null 2>&1 && echo pnpm || echo npm"
+
 tasks:
   up:
     desc: "Set up development environment (install deps, verify toolchain)"
@@ -19,8 +23,8 @@ tasks:
         fi
         echo "  pi $(pi --version 2>/dev/null || echo '(version unavailable)')"
       - |
-        echo "==> Installing dependencies..."
-        pnpm install
+        echo "==> Installing dependencies ({{.PKG}})..."
+        {{.PKG}} install
         echo "  Dependencies installed"
       - |
         echo "==> Configuring git hooks..."
@@ -82,19 +86,19 @@ tasks:
   typecheck:
     desc: "Run TypeScript type checker"
     cmds:
-      - npx tsc --noEmit
+      - "{{.PKG}} run typecheck"
 
   style:
     desc: "Run linter, auto-format code, and type check"
     cmds:
       - |
         echo "==> Running Biome linter and formatter..."
-        npx @biomejs/biome check --write --unsafe --no-errors-on-unmatched --error-on-warnings ./src ./test
+        {{.PKG}} exec biome check --write --unsafe --no-errors-on-unmatched --error-on-warnings ./src ./test
         biome_exit=$?
 
         echo ""
         echo "==> Running TypeScript type checker..."
-        npx tsc --noEmit
+        {{.PKG}} run typecheck
         tsc_exit=$?
 
         echo ""
@@ -112,9 +116,9 @@ tasks:
     cmds:
       - |
         if [ "{{.JSON_FLAG}}" = "true" ]; then
-          npx vitest run --reporter=json
+          {{.PKG}} exec vitest run --reporter=json
         else
-          npx vitest run
+          {{.PKG}} exec vitest run
         fi
     silent: true
 

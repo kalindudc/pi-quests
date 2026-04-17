@@ -1,6 +1,19 @@
 import type { ResolvedConfig } from "../config.js";
+import { logger } from "../logger.js";
+import type { Quest } from "./types.js";
 
 const ACKNOWLEDGEMENT = "Update your quest status before continuing.";
+
+function formatActiveQuests(allQuests: Quest[], limit = 3): string {
+  const active = allQuests.filter((q) => !q.done);
+  if (active.length === 0) return "";
+
+  const shown = active.slice(0, limit);
+  const lines = shown.map((q) => `  [${q.id}]: ${q.description}`);
+  if (active.length > limit) lines.push(`  ... and ${active.length - limit} more`);
+
+  return `\nActive quests:\n${lines.join("\n")}`;
+}
 
 type NudgeCandidate = { index: number; message: string };
 
@@ -32,22 +45,37 @@ export class QuestUsageTracker {
 
   getNudge(
     activeQuestCount: number,
+    allQuests: Quest[],
     latestPrompt?: string,
     hasTopLevelQuestWithoutSubs?: boolean,
   ): string | undefined {
-    if (this.nudgedThisTurn) return undefined;
+    if (this.nudgedThisTurn) {
+      logger.debug("quests:tracker", "nudge-suppressed", { reason: "turn-limit" });
+      return undefined;
+    }
 
     const now = Date.now();
     const cooldownMs = this.config.nudges.hintIntervalMinutes * 60 * 1000;
     if (this.lastNudgeTime > 0 && now - this.lastNudgeTime < cooldownMs) {
+      logger.debug("quests:tracker", "nudge-suppressed", {
+        reason: "cooldown",
+        elapsed: now - this.lastNudgeTime,
+        cooldownMs,
+      });
       return undefined;
     }
 
     const eligible = this.getEligibleNudges(
       activeQuestCount,
+      allQuests,
       latestPrompt,
       hasTopLevelQuestWithoutSubs,
     );
+
+    logger.debug("quests:tracker", "nudge-candidates", {
+      eligible: eligible.length,
+      indices: eligible.map((c) => c.index),
+    });
 
     // Rotate priority: start checking from the nudge after the last one that fired
     const rotated = [
@@ -59,6 +87,11 @@ export class QuestUsageTracker {
     if (winner) {
       this.nudgedThisTurn = true;
       this.lastNudgeTime = now;
+
+      logger.debug("quests:tracker", "nudge-fired", {
+        winner: winner.index,
+        rotatedFrom: this.lastNudgeIndex,
+      });
       this.lastNudgeIndex = winner.index;
       return winner.message;
     }
@@ -68,6 +101,7 @@ export class QuestUsageTracker {
 
   private getEligibleNudges(
     activeQuestCount: number,
+    allQuests: Quest[],
     latestPrompt?: string,
     hasTopLevelQuestWithoutSubs?: boolean,
   ): NudgeCandidate[] {
@@ -85,7 +119,7 @@ export class QuestUsageTracker {
     if (activeQuestCount === 0 && latestPrompt && this.isComplexPrompt(latestPrompt)) {
       candidates.push({
         index: 1,
-        message: `QUEST REMINDER: Your latest prompt appears to be a complex task, but there are 0 active quests. USE the quest tool to break this into concrete, trackable steps. ${ACKNOWLEDGEMENT}`,
+        message: `QUEST REMINDER: Your latest prompt is a complex task, but there are 0 active quests. USE the quest tool to break this into concrete, trackable steps. ${ACKNOWLEDGEMENT}`,
       });
     }
 
@@ -96,9 +130,10 @@ export class QuestUsageTracker {
       this.consecutiveNonQuestToolCalls >= this.config.nudges.timeBasedToolCallThreshold &&
       Date.now() - this.lastQuestToolTime >= this.config.nudges.hintIntervalMinutes * 60 * 1000
     ) {
+      const questContext = formatActiveQuests(allQuests);
       candidates.push({
         index: 2,
-        message: `QUEST REMINDER: It has been a while since your last quest tool use and ${this.consecutiveNonQuestToolCalls} tools have been called since then. ALIGN on quest status before continuing. ${ACKNOWLEDGEMENT}`,
+        message: `QUEST REMINDER: It has been a while since your last quest tool use and ${this.consecutiveNonQuestToolCalls} tools have been called since then. ALIGN on quest status before continuing.${questContext} ${ACKNOWLEDGEMENT}`,
       });
     }
 
@@ -122,18 +157,21 @@ export class QuestUsageTracker {
     ) {
       candidates.push({
         index: 4,
-        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and have active top-level quests without steps. Use the \`split\` action to break down complex tasks into smaller, trackable steps. ${ACKNOWLEDGEMENT}`,
+        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool and have active top-level quests without steps. Consider the quest complexity and use the \`split\` action to break them into smaller steps and track progress. ${ACKNOWLEDGEMENT}`,
       });
     }
 
-    // 5. Stale-progress sustained-work nudge
+    // 5. Stale-progress sustained-work nudge (with time-gate)
     if (
       this.consecutiveNonQuestToolCalls >= this.config.nudges.staleProgressToolCallThreshold &&
-      activeQuestCount > 0
+      activeQuestCount > 0 &&
+      this.lastQuestToolTime > 0 &&
+      Date.now() - this.lastQuestToolTime >= this.config.nudges.hintIntervalMinutes * 60 * 1000
     ) {
+      const questContext = formatActiveQuests(allQuests);
       candidates.push({
         index: 5,
-        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool despite having active quests.\nUPDATE your quest progress to reflect current status.\nALWAYS use steps to break down a quest into smaller steps, and to group related tasks together. ${ACKNOWLEDGEMENT}`,
+        message: `QUEST REMINDER: You have made ${this.consecutiveNonQuestToolCalls} consecutive tool calls without using the quest tool despite having active quests. UPDATE your quest progress to reflect current status.${questContext} ${ACKNOWLEDGEMENT}`,
       });
     }
 

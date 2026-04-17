@@ -23,15 +23,12 @@ export const DEFAULT_COMPLEX_TASK_KEYWORDS = [
   "implement",
   "refactor",
   "investigate",
-  "review",
   "analyze",
   "audit",
-  "plan",
   "design",
-  "create",
-  "build",
-  "write",
   "fix",
+  "plan",
+  "build",
 ] as const;
 
 export const DEFAULT_FAKE_DONE_PATTERN = String.raw`\s[-\u2013\u2014]\s*(DONE|COMPLETED|FINISHED)$|\s[([](DONE|COMPLETED|FINISHED)[)\]]$`;
@@ -42,9 +39,9 @@ export const DEFAULT_CONFIG: ResolvedConfig = {
   nudges: {
     toolCallThreshold: 8,
     hintIntervalMinutes: 4,
-    timeBasedToolCallThreshold: 5,
+    timeBasedToolCallThreshold: 8,
     zeroActiveToolCallThreshold: 8,
-    staleProgressToolCallThreshold: 16,
+    staleProgressToolCallThreshold: 12,
     stepSuggestionToolCallThreshold: 10,
     complexTaskKeywords: [...DEFAULT_COMPLEX_TASK_KEYWORDS],
   },
