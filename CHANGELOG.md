@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-17
+
+- feat: add footer quest progress indicator with configurable icon
+- fix: quest list widget cache invalidation
+
 ## [0.5.1] - 2026-04-17
 
 - fix: add context signals and calibrate nudge thresholds
