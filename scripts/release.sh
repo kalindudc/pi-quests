@@ -71,7 +71,7 @@ UNEXPECTED=""
 while IFS= read -r file; do
   [ -z "$file" ] && continue
   case "$file" in
-    package.json|CHANGELOG.md|README.md|AGENTS.md|docs/*|scripts/*) ;;
+    package.json|package-lock.json|CHANGELOG.md|README.md|AGENTS.md|docs/*|scripts/*) ;;
     *) UNEXPECTED="${UNEXPECTED}  ${file}"$'\n' ;;
   esac
 done < <(git status --porcelain | awk '{print $2}' | sort)
@@ -80,7 +80,7 @@ if [ -n "$UNEXPECTED" ]; then
   echo "Error: Unexpected file changes detected"
   echo ""
   echo "Allowed release files:"
-  echo "  package.json, CHANGELOG.md, README.md, AGENTS.md, docs/*"
+  echo "  package.json, package-lock.json, CHANGELOG.md, README.md, AGENTS.md, docs/*"
   echo ""
   echo "Unexpected:"
   printf "%s" "$UNEXPECTED"

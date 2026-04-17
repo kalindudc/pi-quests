@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-04-17
+
+- fix: add context signals and calibrate nudge thresholds
+
 ## [0.5.0] - 2026-04-14
 
 - feat: add reparent action to promote, demote, or move quests and steps with validation and revert support
