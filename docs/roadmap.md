@@ -23,6 +23,12 @@
 - [ ] add a quest log reset
 - [ ] dynamic quest log resets, to avoid confusion
 - [ ] quest log filtering, only show incomplete quests, etc...
+- [ ] Rename `revert` to `undo`, and add a `redo` action
+- [ ] quest log widget should have more controls
+  - `up / down` arrow functionality to navigate through each quest in the log, current selection should be highlighted
+  - `t | enter` key should toggle the current selected quest
+  - `a` key should give a prompt to add a new quest
+  - `z` key should revert, `y` key should rstore
 
 ### observability
 - [x] progress indicator for active quest (e.g., 3 of 7 complete)
