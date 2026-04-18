@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-04-17
+
+- fix: system prompt was too weak
+- chore: add more roadmap items
+
 ## [0.6.1] - 2026-04-17
 
 - fix: make quest prompt injection static and cache-friendly with `nudges.enable` and `display.showStatus` toggles
