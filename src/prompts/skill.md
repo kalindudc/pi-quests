@@ -20,7 +20,8 @@ This skill provides guidelines and best practices for using the quest management
 | `clear` | — | Remove completed quests. `all: true` removes everything. |
 | `reorder` | `id`, `targetId` | Move a top-level quest before `targetId`. Steps cannot be reordered. |
 | `reparent` | `id`, `parentId?` | Demote to step under `parentId`, or promote to top-level if `parentId` omitted. |
-| `revert` | — | Undo the most recent mutating action. One level only. |
+| `undo` | — | Undo the most recent mutating action. One level only. |
+| `redo` | — | Redo the most recently undone action. |
 | `rules` / `skill` | — | Return this document. |
 
 ## Workflows
@@ -51,7 +52,8 @@ This skill provides guidelines and best practices for using the quest management
 - NEVER try to nest steps. Only top-level quests can be parents.
 - NEVER mark a parent as done if they have incomplete steps.
 - NEVER delete a quest with incomplete steps.
-- Use revert if you make a mistake to undo an action.
+- Use undo if you make a mistake to undo an action.
+- Use redo to replay an action you just undid. Redo is cleared when a new mutation happens.
 - ALWAYS use the hex ID, never the positional number when referring to quests in actions.
 - ALWAYS Use `toggle` for done states. NEVER use `update` to append "DONE" or any completion marker to a description.
 - If a parent toggle is blocked, check that all its steps are done first.

@@ -11,7 +11,8 @@ const SPLIT_DISPLAY_ACTIONS = [
   QUEST_ACTIONS.list,
   QUEST_ACTIONS.split,
   QUEST_ACTIONS.add_step,
-  QUEST_ACTIONS.revert,
+  QUEST_ACTIONS.undo,
+  QUEST_ACTIONS.redo,
 ] as const;
 
 import { invalidateQuestListWidget } from "../renderers/commands.js";
@@ -86,8 +87,11 @@ const toolHandlers: {
   [QUEST_ACTIONS.skill](questLog, _params, toolCallId) {
     return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.skill });
   },
-  [QUEST_ACTIONS.revert](questLog, _params, toolCallId) {
-    return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.revert });
+  [QUEST_ACTIONS.undo](questLog, _params, toolCallId) {
+    return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.undo });
+  },
+  [QUEST_ACTIONS.redo](questLog, _params, toolCallId) {
+    return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.redo });
   },
 };
 

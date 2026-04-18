@@ -10,7 +10,8 @@ export type ParsedArgs =
   | { action: typeof QUEST_ACTIONS.delete; id: string }
   | { action: typeof QUEST_ACTIONS.clear; all?: boolean }
   | { action: typeof QUEST_ACTIONS.reorder; id: string; targetId: string }
-  | { action: typeof QUEST_ACTIONS.revert }
+  | { action: typeof QUEST_ACTIONS.undo }
+  | { action: typeof QUEST_ACTIONS.redo }
   | { action: typeof QUEST_ACTIONS.reparent; id: string; parentId?: string }
   | { action: "help" }
   | { action: "version" }
@@ -40,7 +41,8 @@ export function parseQuestArgs(args: string, idLength = 2): ParsedArgs {
   // Quest actions without arguments
   if (command === QUEST_ACTIONS.list) return { action: QUEST_ACTIONS.list };
   if (command === QUEST_ACTIONS.clear) return parseClearArgs(rest);
-  if (command === QUEST_ACTIONS.revert) return { action: QUEST_ACTIONS.revert };
+  if (command === QUEST_ACTIONS.undo) return { action: QUEST_ACTIONS.undo };
+  if (command === QUEST_ACTIONS.redo) return { action: QUEST_ACTIONS.redo };
 
   // Quest actions with arguments
   if (command === QUEST_ACTIONS.add) return parseAddArgs(rest);

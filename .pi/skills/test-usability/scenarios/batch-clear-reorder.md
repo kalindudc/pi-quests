@@ -1,6 +1,6 @@
 # Batch Add, Clear, and Reorder
 
-Goal: Verify batch creation of quests and steps, clear semantics, orphan prevention, and top-level reordering with revert.
+Goal: Verify batch creation of quests and steps, clear semantics, orphan prevention, and top-level reordering with undo.
 
 Precondition: Use fresh quests for this scenario. Clear the log with `all: true` first if needed to reduce noise.
 
@@ -21,7 +21,7 @@ Precondition: Use fresh quests for this scenario. Clear the log with `all: true`
    - Verify by listing and counting survivors (expect 4).
    - Record clear message and survivor count.
 
-4. Use `quest` action `"revert"`.
+4. Use `quest` action `"undo"`.
    - Expected: the cleared quest is restored exactly as before.
    - Verify with `quest list`.
    - Record message and confirmation.
@@ -44,7 +44,7 @@ Precondition: Use fresh quests for this scenario. Clear the log with `all: true`
    - Expected: listing shows order as C, A, B.
    - Record message and observed order.
 
-8. Use `quest` action `"revert"`.
+8. Use `quest` action `"undo"`.
    - Expected: original order A, B, C restored.
    - Verify with `quest list`.
    - Record message and confirmed order.

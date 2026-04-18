@@ -53,7 +53,7 @@ describe("QuestLog", () => {
     expect(log.clear()).toBe(1);
     expect(log.getAll()).toHaveLength(1);
     expect(log.getAll()[0]?.id).toBe(b.id);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
     expect(log.getAll().map((q) => ({ id: q.id, desc: q.description }))).toEqual([
@@ -68,7 +68,7 @@ describe("QuestLog", () => {
     log.add("B");
     expect(log.clear(true)).toBe(2);
     expect(log.getAll()).toHaveLength(0);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
   });
@@ -86,7 +86,7 @@ describe("QuestLog", () => {
       { id: a.id, desc: "A" },
       { id: c.id, desc: "C" },
     ]);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll().map((q) => ({ id: q.id, desc: q.description }))).toEqual([
       { id: a.id, desc: "A" },
@@ -95,42 +95,42 @@ describe("QuestLog", () => {
     ]);
   });
 
-  it("reverts add", () => {
+  it("undoes add", () => {
     const log = new QuestLog();
     log.add("A");
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(0);
   });
 
-  it("reverts toggle", () => {
+  it("undoes toggle", () => {
     const log = new QuestLog();
     const q = log.add("A");
     log.toggle(q.id);
     expect(q.done).toBe(true);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(q.done).toBe(false);
   });
 
-  it("reverts toggle on step", () => {
+  it("undoes toggle on step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
     const step = log.addStep("Sub", parent.id);
     log.toggle(step.id);
     expect(step.done).toBe(true);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(step.done).toBe(false);
   });
 
-  it("reverts clear", () => {
+  it("undoes clear", () => {
     const log = new QuestLog();
     log.add("A");
     log.add("B");
     log.clear(true);
     expect(log.getAll()).toHaveLength(0);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
   });
@@ -171,12 +171,12 @@ describe("QuestLog", () => {
     expect(log.delete("ff")).toBeUndefined();
   });
 
-  it("reverts delete", () => {
+  it("undoes delete", () => {
     const log = new QuestLog();
     const a = log.add("A");
     log.add("B");
     log.delete(a.id);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
   });
@@ -223,19 +223,19 @@ describe("QuestLog", () => {
     log.addStep("Sub", r.id);
     expect(() => log.reparent(r.id, p2.id)).toThrow("steps");
   });
-  it("reverts reparent promotion, demotion, and reparent", () => {
+  it("undoes reparent promotion, demotion, and reparent", () => {
     const log = new QuestLog();
     const a = log.add("A");
     const b = log.add("B");
     const step = log.addStep("Sub", a.id);
     log.reparent(step.id);
-    expect(log.revert().success).toBe(true);
+    expect(log.undo().success).toBe(true);
     expect(log.getSteps(a.id)).toHaveLength(1);
     log.reparent(b.id, a.id);
-    expect(log.revert().success).toBe(true);
+    expect(log.undo().success).toBe(true);
     expect(log.getQuests()).toHaveLength(2);
     log.reparent(step.id, b.id);
-    expect(log.revert().success).toBe(true);
+    expect(log.undo().success).toBe(true);
     expect(log.getSteps(a.id)).toHaveLength(1);
   });
   it("execute reparent returns error without id", () => {
@@ -244,7 +244,7 @@ describe("QuestLog", () => {
     expect(result.success).toBe(false);
     expect(result.message).toContain("id is required");
   });
-  it("reverts delete of parent and restores cascade-deleted steps", () => {
+  it("undoes delete of parent and restores cascade-deleted steps", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
     const step = log.addStep("Sub", parent.id);
@@ -252,18 +252,18 @@ describe("QuestLog", () => {
     log.toggle(parent.id);
     log.delete(parent.id);
     expect(log.getAll()).toHaveLength(0);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
     expect(log.getSteps(parent.id)).toHaveLength(1);
   });
 
-  it("reverts add of step", () => {
+  it("undoes add of step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
     log.addStep("Sub", parent.id);
     expect(log.getSteps(parent.id)).toHaveLength(1);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getSteps(parent.id)).toHaveLength(0);
   });
@@ -277,13 +277,13 @@ describe("QuestLog", () => {
     expect(log.getUsedIds()).not.toContain(a.id);
   });
 
-  it("revert delete restores the id to usedIds", () => {
+  it("undo delete restores the id to usedIds", () => {
     const log = new QuestLog();
     const a = log.add("A");
     log.add("B");
     log.delete(a.id);
     expect(log.getUsedIds()).not.toContain(a.id);
-    log.revert();
+    log.undo();
     expect(log.getUsedIds()).toContain(a.id);
   });
 
@@ -309,44 +309,117 @@ describe("QuestLog", () => {
     expect(log.getUsedIds()).toHaveLength(0);
   });
 
-  it("revert clear restores usedIds", () => {
+  it("undo clear restores usedIds", () => {
     const log = new QuestLog();
     const a = log.add("A");
     const b = log.add("B");
     log.clear(true);
     expect(log.getUsedIds()).toHaveLength(0);
-    log.revert();
+    log.undo();
     expect(log.getUsedIds()).toContain(a.id);
     expect(log.getUsedIds()).toContain(b.id);
   });
 
-  it("reverts update", () => {
+  it("undoes update", () => {
     const log = new QuestLog();
     const q = log.add("Original");
     log.update(q.id, "Changed");
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()[0]?.description).toBe("Original");
   });
 
-  it("reverts update on step", () => {
+  it("undoes update on step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
     const step = log.addStep("Sub", parent.id);
     log.update(step.id, "Changed");
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getSteps(parent.id)[0]?.description).toBe("Sub");
   });
 
-  it("returns nothing to revert when history is empty", () => {
+  it("returns nothing to undo when history is empty", () => {
     const log = new QuestLog();
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(false);
-    expect(result.message).toContain("Nothing to revert");
+    expect(result.message).toContain("Nothing to undo");
   });
 
-  it("reverts reorder after clear because quest references are preserved", () => {
+  it("returns nothing to redo when redo stack is empty", () => {
+    const log = new QuestLog();
+    const result = log.redo();
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Nothing to redo");
+  });
+
+  it("redoes an undone add with the same id", () => {
+    const log = new QuestLog();
+    const q = log.add("A");
+    log.undo();
+    expect(log.getAll()).toHaveLength(0);
+    const result = log.redo();
+    expect(result.success).toBe(true);
+    expect(log.getAll()).toHaveLength(1);
+    expect(log.getAll()[0]!.id).toBe(q.id);
+    expect(log.getAll()[0]!.description).toBe("A");
+  });
+
+  it("redoes an undone toggle", () => {
+    const log = new QuestLog();
+    const q = log.add("A");
+    log.toggle(q.id);
+    expect(q.done).toBe(true);
+    log.undo();
+    expect(q.done).toBe(false);
+    const result = log.redo();
+    expect(result.success).toBe(true);
+    expect(q.done).toBe(true);
+  });
+
+  it("redoes an undone delete", () => {
+    const log = new QuestLog();
+    const a = log.add("A");
+    log.add("B");
+    log.delete(a.id);
+    expect(log.getAll()).toHaveLength(1);
+    log.undo();
+    expect(log.getAll()).toHaveLength(2);
+    const result = log.redo();
+    expect(result.success).toBe(true);
+    expect(log.getAll()).toHaveLength(1);
+  });
+
+  it("clears redo stack after a new mutation", () => {
+    const log = new QuestLog();
+    log.add("A");
+    log.undo();
+    expect(log.getAll()).toHaveLength(0);
+    log.add("B");
+    const result = log.redo();
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Nothing to redo");
+  });
+
+  it("chains undo and redo across multiple actions", () => {
+    const log = new QuestLog();
+    const a = log.add("A");
+    const b = log.add("B");
+    log.toggle(a.id);
+    log.update(b.id, "B updated");
+    expect(log.getAll()[0]!.done).toBe(true);
+    expect(log.getAll()[1]!.description).toBe("B updated");
+    log.undo();
+    log.undo();
+    expect(log.getAll()[0]!.done).toBe(false);
+    expect(log.getAll()[1]!.description).toBe("B");
+    log.redo();
+    log.redo();
+    expect(log.getAll()[0]!.done).toBe(true);
+    expect(log.getAll()[1]!.description).toBe("B updated");
+  });
+
+  it("undoes reorder after clear because quest references are preserved", () => {
     const log = new QuestLog();
     const a = log.add("A");
     const b = log.add("B");
@@ -354,9 +427,9 @@ describe("QuestLog", () => {
     expect(log.getAll().map((q) => q.description)).toEqual(["B", "A"]);
     log.clear(true);
     expect(log.getAll()).toHaveLength(0);
-    log.revert();
+    log.undo();
     expect(log.getAll().map((q) => q.description)).toEqual(["B", "A"]);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll().map((q) => q.description)).toEqual(["A", "B"]);
   });
@@ -567,10 +640,10 @@ describe("QuestLog.execute", () => {
     expect(result.message).toContain("Clear done or all quests");
   });
 
-  it("executes revert action", () => {
+  it("executes undo action", () => {
     const log = new QuestLog();
     log.add("A");
-    const result = log.execute({ type: QUEST_ACTIONS.revert });
+    const result = log.execute({ type: QUEST_ACTIONS.undo });
     expect(result.success).toBe(true);
     expect(result.message).toContain("Reverted add quest [01]");
     expect(log.getAll()).toHaveLength(0);
@@ -667,7 +740,7 @@ describe("Step", () => {
     expect(log.clear()).toBe(1);
     expect(log.getAll()).toHaveLength(1);
     expect(log.getSteps(parent.id)).toHaveLength(0);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
   });
@@ -681,7 +754,7 @@ describe("Step", () => {
     expect(log.clear()).toBe(2);
     expect(log.getAll()).toHaveLength(0);
     expect(log.getSteps(parent.id)).toHaveLength(0);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
   });
@@ -692,17 +765,17 @@ describe("Step", () => {
     log.addStep("Sub", parent.id);
     expect(log.clear(true)).toBe(2);
     expect(log.getAll()).toHaveLength(0);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
   });
 
-  it("revert delete restores a step", () => {
+  it("undo delete restores a step", () => {
     const log = new QuestLog();
     const parent = log.add("Parent");
     const step = log.addStep("Sub", parent.id);
     log.delete(step.id);
-    const result = log.revert();
+    const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getSteps(parent.id)).toHaveLength(1);
   });

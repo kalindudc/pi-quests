@@ -167,22 +167,35 @@ describe("createQuestsHandler", () => {
     expect(ctx.ui.notify).toHaveBeenCalledWith("Cleared 1 completed quests", "info");
   });
 
-  it("reverts last action", async () => {
+  it("undoes last action", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("add A", ctx);
-    await handler("revert", ctx);
+    await handler("undo", ctx);
     expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("Reverted"), "info");
   });
 
-  it("shows error when nothing to revert", async () => {
+  it("shows error when nothing to undo", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
-    await handler("revert", ctx);
-    expect(ctx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining("Nothing to revert"),
-      "error",
-    );
+    await handler("undo", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("Nothing to undo"), "error");
+  });
+
+  it("redoes last undone action", async () => {
+    const ctx = createMockCtx();
+    const handler = createHandler();
+    await handler("add A", ctx);
+    await handler("undo", ctx);
+    await handler("redo", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("Redone"), "info");
+  });
+
+  it("shows error when nothing to redo", async () => {
+    const ctx = createMockCtx();
+    const handler = createHandler();
+    await handler("redo", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("Nothing to redo"), "error");
   });
 
   it("shows help via notify", async () => {

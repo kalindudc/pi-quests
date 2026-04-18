@@ -114,11 +114,19 @@ describe("questToolExecute", () => {
     expect(log.getAll()).toHaveLength(0);
   });
 
-  it("reverts last action", async () => {
+  it("undoes last action", async () => {
     const log = createLog();
     log.add("A");
-    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.revert });
+    const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.undo });
     expect(getText(result.content[0]!)).toContain("Reverted add quest [01]");
+  });
+
+  it("redoes last undone action", async () => {
+    const log = createLog();
+    log.add("A");
+    await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.undo });
+    const result = await questToolExecute(log, "tc2", { action: QUEST_ACTIONS.redo });
+    expect(getText(result.content[0]!)).toContain("Redone add quest [01]");
   });
 
   it("includes full quest list in details for add action", async () => {

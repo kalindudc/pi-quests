@@ -22,7 +22,8 @@ Run a hands-on integration test of the pi-quests extension by **using the actual
   - `npm run style:fix` exits with code 0
 2. Acknowledge that the live session quest log will be modified during testing.
 3. Discover scenarios to test in `.pi/skills/test-usability/scenarios/`, if no scenarios are present, STOP and report to the user.
-4. Each test must be run one at a time using the `Test protocol` below. DO NOT run multiple scenarios in parallel
+4. If a scenario is provided by the user in $ARGS, then ONLY RUN that scenario. Otherwise, run all scenarios.
+5. Each test must be run one at a time using the `Test protocol` below. DO NOT run multiple scenarios in parallel
 
 ## Test protocol
 

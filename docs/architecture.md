@@ -159,7 +159,8 @@ export type QuestAction =
   | { type: "delete"; id?: string }
   | { type: "clear"; all?: boolean }
   | { type: "reorder"; id?: string; targetId?: string }
-  | { type: "revert" };
+  | { type: "undo" }
+  | { type: "redo" };
 ```
 
 This means:
@@ -167,12 +168,12 @@ This means:
 - Command handlers never call `questLog.toggle()` directly
 - Renderers and widgets are read-only
 
-### History and revert
+### History and undo/redo
 
-Every mutating action pushes a typed `HistoryEntry` onto a stack. Calling `revert` pops the most recent entry and restores the previous state:
+Every mutating action pushes a typed `HistoryEntry` onto a stack. Calling `undo` pops the most recent entry and restores the previous state:
 
-| Action | History entry | Revert behavior |
-|--------|---------------|-----------------|
+| Action | History entry | Undo behavior |
+|--------|---------------|---------------|
 | `add` | `{ type: "add", id }` | Removes the added quest; restores used ID |
 | `split` | `{ type: "split", id, descriptions }` | Removes the added steps one by one (no custom history entry) |
 | `toggle` | `{ type: "toggle", id }` | Flips the `done` flag back |
@@ -181,7 +182,7 @@ Every mutating action pushes a typed `HistoryEntry` onto a stack. Calling `rever
 | `clear` | `{ type: "clear", previousQuests, previousSteps?, all }` or `{ quests, steps?, all }` | Restores the full quest array and used IDs |
 | `reorder` | `{ type: "reorder", quest, oldIndex, previousIds, targetId }` | Restores the original order and IDs |
 
-The revert logic is implemented as a typed `undoHandlers` map — one handler per `HistoryEntry` type — rather than an if-chain.
+The undo logic is implemented as a typed `undoHandlers` map — one handler per `HistoryEntry` type — rather than an if-chain. Calling `redo` replays the most recently undone action by pushing a `RedoEntry` and applying `redoHandlers`. The redo stack is cleared on any new mutation. Redo reuses the same public mutation methods where possible, so history is automatically repopulated.
 
 ### Prompt injection
 

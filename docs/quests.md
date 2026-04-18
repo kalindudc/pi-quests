@@ -36,9 +36,9 @@ interface Step extends Quest {
 - A parent quest cannot be deleted until all its steps are completed (deleting a done parent cascade-deletes its done steps).
 - Steps cannot have nested steps of their own.
 
-## History and revert
+## History and undo/redo
 
-Every mutating action (`add`, `toggle`, `update`, `delete`, `clear`, `reorder`, `reparent`) pushes a typed `HistoryEntry` onto a stack. Calling `revert` pops the most recent entry and restores the previous state:
+Every mutating action (`add`, `toggle`, `update`, `delete`, `clear`, `reorder`, `reparent`) pushes a typed `HistoryEntry` onto a stack. Calling `undo` pops the most recent entry and restores the previous state:
 
 - `add` → removes the added quest
 - `toggle` → flips the done flag back
@@ -47,7 +47,7 @@ Every mutating action (`add`, `toggle`, `update`, `delete`, `clear`, `reorder`, 
 - `clear` → restores the full quest array and used IDs
 - `reorder` → restores the original quest order and IDs
 
-Only the most recent action can be reverted. There is no multi-level undo.
+Calling `redo` replays the most recently undone action. The redo stack is cleared whenever a new mutating action occurs, so you can only redo actions that were undone immediately before a new change.
 
 ## Session reconstruction
 

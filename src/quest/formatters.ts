@@ -100,8 +100,12 @@ export function formatUnknownActionError(action: string): string {
   return `Unknown action: ${action}. Use the list action or check the tool schema for supported actions.`;
 }
 
-export function formatNothingToRevertError(): string {
-  return `Nothing to revert. The history is empty because no mutating actions have been performed yet.`;
+export function formatNothingToUndoError(): string {
+  return `Nothing to undo. The history is empty because no mutating actions have been performed yet.`;
+}
+
+export function formatNothingToRedoError(): string {
+  return `Nothing to redo. The redo stack is empty because no actions have been undone yet.`;
 }
 
 export function formatReorderedQuestNotFoundError(): string {

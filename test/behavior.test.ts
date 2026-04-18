@@ -64,7 +64,7 @@ describe("quest behavior", () => {
       expect(log.getAll()[0]!.done).toBe(true);
       expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [01] done", "info");
 
-      await handler("revert", ctx);
+      await handler("undo", ctx);
       expect(log.getAll()[0]!.done).toBe(false);
     });
 
@@ -124,7 +124,7 @@ describe("quest behavior", () => {
       await questToolExecute(log, "tc2", { action: QUEST_ACTIONS.clear, all: true });
       expect(log.getAll()).toHaveLength(0);
 
-      const result = await questToolExecute(log, "tc3", { action: QUEST_ACTIONS.revert });
+      const result = await questToolExecute(log, "tc3", { action: QUEST_ACTIONS.undo });
       expect(log.getAll()).toHaveLength(2);
       expect(getText(result.content[0]!)).toContain("Reverted clear");
     });

@@ -57,8 +57,12 @@ describe("parseQuestArgs", () => {
     expect(parseQuestArgs("toggle abc")).toEqual({ error: "Usage: /quests toggle <id>" });
   });
 
-  it("parses revert", () => {
-    expect(parseQuestArgs("revert")).toEqual({ action: QUEST_ACTIONS.revert });
+  it("parses undo", () => {
+    expect(parseQuestArgs("undo")).toEqual({ action: QUEST_ACTIONS.undo });
+  });
+
+  it("parses redo", () => {
+    expect(parseQuestArgs("redo")).toEqual({ action: QUEST_ACTIONS.redo });
   });
 
   it("parses update with id and description", () => {

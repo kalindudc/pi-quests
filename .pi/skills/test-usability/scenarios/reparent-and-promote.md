@@ -27,11 +27,11 @@ Precondition: Session quest log may have existing items. This scenario creates t
    - Expected: success message containing `Moved quest [STEP_ID] under [PB_ID]`.
    - Verify `quest list` shows `Promote Me` indented under `PB_ID`.
 
-6. Use `quest` tool with `action: "revert"`.
+6. Use `quest` tool with `action: "undo"`.
    - Expected: revert message mentioning `Reverted reparent for quest [STEP_ID]`.
    - Verify `quest list` shows `Promote Me` back as a top-level quest (reverting the move to `PB_ID`).
 
-7. Use `quest` tool with `action: "revert"`.
+7. Use `quest` tool with `action: "undo"`.
    - Expected: revert message mentioning `Reverted reparent for quest [STEP_ID]`.
    - Verify `quest list` shows `Promote Me` indented under `PA_ID` again (reverting the promotion).
 

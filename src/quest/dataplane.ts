@@ -12,7 +12,8 @@ import {
   formatIdRequiredError,
   formatMissingDescriptionsError,
   formatNotFound,
-  formatNothingToRevertError,
+  formatNothingToRedoError,
+  formatNothingToUndoError,
   formatParentDoneError,
   formatParentNotFoundError,
   formatQuestList,
@@ -74,10 +75,20 @@ export type QuestAction =
   | { type: typeof QUEST_ACTIONS.delete; id?: string }
   | { type: typeof QUEST_ACTIONS.clear; all?: boolean }
   | { type: typeof QUEST_ACTIONS.reorder; id?: string; targetId?: string }
-  | { type: typeof QUEST_ACTIONS.revert }
+  | { type: typeof QUEST_ACTIONS.undo }
+  | { type: typeof QUEST_ACTIONS.redo }
   | { type: typeof QUEST_ACTIONS.reparent; id?: string; parentId?: string }
   | { type: typeof QUEST_ACTIONS.rules }
   | { type: typeof QUEST_ACTIONS.skill };
+
+export type RedoEntry =
+  | { type: typeof QUEST_ACTIONS.add; quest: Quest | Step }
+  | { type: typeof QUEST_ACTIONS.toggle; id: string }
+  | { type: typeof QUEST_ACTIONS.update; id: string; description: string }
+  | { type: typeof QUEST_ACTIONS.delete; id: string }
+  | { type: typeof QUEST_ACTIONS.clear; all: boolean }
+  | { type: typeof QUEST_ACTIONS.reorder; id: string; targetId: string }
+  | { type: typeof QUEST_ACTIONS.reparent; id: string; parentId?: string };
 
 export type QuestOperationResult = { success: boolean; message: string; quest?: Quest };
 
@@ -92,6 +103,8 @@ export class QuestLog {
   private steps: Step[] = [];
   private usedIds: Set<string> = new Set();
   private history: HistoryEntry[] = [];
+  private redoStack: RedoEntry[] = [];
+  private inRedo = false;
 
   private readonly ID_LENGTH: number;
   private readonly MAX_IDS: number;
@@ -230,6 +243,84 @@ export class QuestLog {
     },
   };
 
+  private redoHandlers: {
+    [K in RedoEntry["type"]]: (entry: Extract<RedoEntry, { type: K }>) => {
+      success: boolean;
+      message: string;
+    };
+  } = {
+    [QUEST_ACTIONS.add]: (entry) => {
+      if ("parentId" in entry.quest && entry.quest.parentId) {
+        this.steps.push(entry.quest as Step);
+        this.history.push({
+          type: QUEST_ACTIONS.add,
+          id: entry.quest.id,
+          parentId: entry.quest.parentId,
+        });
+      } else {
+        this.quests.push(entry.quest);
+        this.history.push({ type: QUEST_ACTIONS.add, id: entry.quest.id });
+      }
+      this.usedIds.add(entry.quest.id);
+      return { success: true, message: `Redone add quest [${entry.quest.id}]` };
+    },
+    [QUEST_ACTIONS.toggle]: (entry) => {
+      const q = this.toggle(entry.id);
+      if (q) return { success: true, message: `Redone toggle for quest [${entry.id}]` };
+      return { success: false, message: formatNotFound(entry.id) };
+    },
+    [QUEST_ACTIONS.update]: (entry) => {
+      const q = this.update(entry.id, entry.description);
+      if (q) return { success: true, message: `Redone update for quest [${entry.id}]` };
+      return { success: false, message: formatNotFound(entry.id) };
+    },
+    [QUEST_ACTIONS.delete]: (entry) => {
+      const q = this.delete(entry.id);
+      if (q === undefined) return { success: false, message: formatNotFound(entry.id) };
+      if (q === null) return { success: false, message: formatBlockedBySteps(entry.id) };
+      return { success: true, message: `Redone delete for quest [${entry.id}]` };
+    },
+    [QUEST_ACTIONS.clear]: (entry) => {
+      const count = this.clear(entry.all);
+      return {
+        success: true,
+        message: `Redone clear (${count} quests ${entry.all ? "" : "completed "}cleared)`,
+      };
+    },
+    [QUEST_ACTIONS.reorder]: (entry) => {
+      const q = this.reorder(entry.id, entry.targetId);
+      if (q) return { success: true, message: `Redone reorder for quest [${entry.id}]` };
+      return { success: false, message: formatReorderedQuestNotFoundError() };
+    },
+    [QUEST_ACTIONS.reparent]: (entry) => {
+      try {
+        const q = this.reparent(entry.id, entry.parentId);
+        if (q) return { success: true, message: `Redone reparent for quest [${entry.id}]` };
+        return { success: false, message: formatNotFound(entry.id) };
+      } catch (err) {
+        return {
+          success: false,
+          message: `Error: ${err instanceof Error ? err.message : String(err)}`,
+        };
+      }
+    },
+  };
+
+  redo(): QuestOperationResult {
+    const entry = this.redoStack.pop();
+    if (!entry) {
+      return { success: false, message: formatNothingToRedoError() };
+    }
+    const handler = this.redoHandlers[entry.type];
+    if (handler) {
+      this.inRedo = true;
+      const result = handler(entry as never);
+      this.inRedo = false;
+      return result;
+    }
+    return { success: false, message: "Unknown redo entry" };
+  }
+
   /*
    * Returns all quests including steps, inserted in order
    * steps are returned immediately after their parent quest
@@ -270,6 +361,7 @@ export class QuestLog {
   }
 
   add(description: string): Quest {
+    if (!this.inRedo) this.redoStack = [];
     const quest: Quest = {
       id: this.generateId(),
       description,
@@ -289,6 +381,7 @@ export class QuestLog {
   }
 
   addStep(description: string, parentId: string): Step {
+    if (!this.inRedo) this.redoStack = [];
     if (this.steps.some((step) => step.id === parentId)) {
       throw new Error(formatStepCannotHaveSteps(parentId));
     }
@@ -332,6 +425,7 @@ export class QuestLog {
   }
 
   toggle(id: string): Quest | Step | null | undefined {
+    if (!this.inRedo) this.redoStack = [];
     const quest = this.findById(id);
     if (!quest) {
       logger.debug("quests:state", "toggle-not-found", { id });
@@ -358,6 +452,7 @@ export class QuestLog {
   }
 
   update(id: string, description: string): Quest | Step | undefined {
+    if (!this.inRedo) this.redoStack = [];
     const quest = this.findById(id);
     if (!quest) {
       logger.debug("quests:state", "update-not-found", { id });
@@ -376,6 +471,7 @@ export class QuestLog {
   }
 
   delete(id: string): Quest | Step | null | undefined {
+    if (!this.inRedo) this.redoStack = [];
     const index = this.quests.findIndex((q) => q.id === id);
     if (index !== -1) {
       const steps = this.getSteps(id);
@@ -418,6 +514,7 @@ export class QuestLog {
   }
 
   clear(all = false): number {
+    if (!this.inRedo) this.redoStack = [];
     if (!all) {
       const doneParentIds = new Set(this.quests.filter((q) => q.done).map((q) => q.id));
       const done = this.quests.filter((q) => q.done);
@@ -458,6 +555,7 @@ export class QuestLog {
   }
 
   reorder(id: string, targetId: string): Quest | undefined {
+    if (!this.inRedo) this.redoStack = [];
     if (this.steps.some((step) => step.id === id || step.id === targetId)) {
       logger.debug("quests:state", "reorder-step-rejected", { id, targetId });
       return undefined;
@@ -498,6 +596,7 @@ export class QuestLog {
   }
 
   reparent(id: string, parentId?: string): Quest | Step | undefined {
+    if (!this.inRedo) this.redoStack = [];
     const quest = this.findById(id);
     if (!quest) return undefined;
 
@@ -553,22 +652,56 @@ export class QuestLog {
     return quest;
   }
 
-  revert(): QuestOperationResult {
+  undo(): QuestOperationResult {
     const entry = this.history.pop();
     if (!entry) {
-      logger.debug("quests:state", "revert-empty");
-      return { success: false, message: formatNothingToRevertError() };
+      logger.debug("quests:state", "undo-empty");
+      return { success: false, message: formatNothingToUndoError() };
     }
 
-    logger.debug("quests:state", "revert", { type: entry.type });
+    logger.debug("quests:state", "undo", { type: entry.type });
+    this.redoStack.push(this.buildRedoEntry(entry));
 
     const handler = this.undoHandlers[entry.type];
     if (handler) {
       return handler(entry as never);
     }
 
-    logger.debug("quests:state", "revert-unknown", { type: (entry as { type: string }).type });
+    logger.debug("quests:state", "undo-unknown", { type: (entry as { type: string }).type });
     return { success: false, message: "Unknown history entry" };
+  }
+
+  private buildRedoEntry(entry: HistoryEntry): RedoEntry {
+    switch (entry.type) {
+      case QUEST_ACTIONS.add: {
+        const quest = this.findById(entry.id);
+        if (!quest) throw new Error(formatNotFound(entry.id));
+        return { type: QUEST_ACTIONS.add, quest };
+      }
+      case QUEST_ACTIONS.toggle:
+        return { type: QUEST_ACTIONS.toggle, id: entry.id };
+      case QUEST_ACTIONS.update:
+        return {
+          type: QUEST_ACTIONS.update,
+          id: entry.id,
+          description: this.findById(entry.id)?.description ?? entry.previousDescription,
+        };
+      case QUEST_ACTIONS.delete:
+        return { type: QUEST_ACTIONS.delete, id: entry.quest.id };
+      case QUEST_ACTIONS.clear:
+        return { type: QUEST_ACTIONS.clear, all: entry.all };
+      case QUEST_ACTIONS.reorder:
+        return { type: QUEST_ACTIONS.reorder, id: entry.quest.id, targetId: entry.targetId };
+      case QUEST_ACTIONS.reparent: {
+        const quest = this.findById(entry.id);
+        if (!quest) throw new Error(formatNotFound(entry.id));
+        return {
+          type: QUEST_ACTIONS.reparent,
+          id: entry.id,
+          parentId: "parentId" in quest ? quest.parentId : undefined,
+        };
+      }
+    }
   }
 
   /**
@@ -576,6 +709,9 @@ export class QuestLog {
    * This is the primary API for all adapter layers (commands, tools).
    */
   execute(action: QuestAction): QuestOperationResult {
+    if (action.type !== QUEST_ACTIONS.undo && action.type !== QUEST_ACTIONS.redo) {
+      this.redoStack = [];
+    }
     switch (action.type) {
       case QUEST_ACTIONS.add: {
         if (action.descriptions && action.descriptions.length > 0) {
@@ -730,8 +866,11 @@ export class QuestLog {
       case QUEST_ACTIONS.skill: {
         return { success: true, message: getQuestSkillDocument() };
       }
-      case QUEST_ACTIONS.revert: {
-        return this.revert();
+      case QUEST_ACTIONS.undo: {
+        return this.undo();
+      }
+      case QUEST_ACTIONS.redo: {
+        return this.redo();
       }
       default: {
         return {

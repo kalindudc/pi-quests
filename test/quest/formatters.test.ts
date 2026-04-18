@@ -9,7 +9,8 @@ import {
   formatIdRequiredError,
   formatMissingDescriptionsError,
   formatNotFound,
-  formatNothingToRevertError,
+  formatNothingToRedoError,
+  formatNothingToUndoError,
   formatParentDoneError,
   formatParentNotFoundError,
   formatQuestList,
@@ -155,8 +156,14 @@ describe("formatUnknownActionError", () => {
   });
 });
 
-describe("formatNothingToRevertError", () => {
+describe("formatNothingToUndoError", () => {
   it("includes recovery hint", () => {
-    expect(formatNothingToRevertError()).toContain("Nothing to revert");
+    expect(formatNothingToUndoError()).toContain("Nothing to undo");
+  });
+});
+
+describe("formatNothingToRedoError", () => {
+  it("includes recovery hint", () => {
+    expect(formatNothingToRedoError()).toContain("Nothing to redo");
   });
 });

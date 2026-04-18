@@ -25,7 +25,8 @@ type MutatingCommand = Extract<
       | typeof QUEST_ACTIONS.clear
       | typeof QUEST_ACTIONS.reorder
       | typeof QUEST_ACTIONS.reparent
-      | typeof QUEST_ACTIONS.revert;
+      | typeof QUEST_ACTIONS.undo
+      | typeof QUEST_ACTIONS.redo;
   }
 >["action"];
 
@@ -59,7 +60,8 @@ const commandActionBuilders: {
     id: p.id,
     parentId: p.parentId,
   }),
-  [QUEST_ACTIONS.revert]: () => ({ type: QUEST_ACTIONS.revert }),
+  [QUEST_ACTIONS.undo]: () => ({ type: QUEST_ACTIONS.undo }),
+  [QUEST_ACTIONS.redo]: () => ({ type: QUEST_ACTIONS.redo }),
 };
 
 export function openQuestList(
@@ -143,7 +145,8 @@ export function createQuestsHandler(
       case QUEST_ACTIONS.clear:
       case QUEST_ACTIONS.reorder:
       case QUEST_ACTIONS.reparent:
-      case QUEST_ACTIONS.revert: {
+      case QUEST_ACTIONS.undo:
+      case QUEST_ACTIONS.redo: {
         const builder = commandActionBuilders[parsed.action];
         const action = builder(parsed as never);
         const result = questLog.execute(action);
@@ -166,7 +169,8 @@ export function createQuestsHandler(
         lines.push("  update <id> <desc> - Update a quest description");
         lines.push("  reparent <id> [parentId] - Reparent a quest/step (omit parentId to promote)");
         lines.push("  reorder <id> <targetId> - Reorder a quest before the target quest");
-        lines.push("  revert             - Revert the last quest change");
+        lines.push("  undo               - Undo the last quest change");
+        lines.push("  redo               - Redo the last undone action");
         lines.push("  clear [all]        - Clear completed quests, or optionally all quests");
         lines.push("  version            - Show version");
         lines.push("  changelog          - Show changelog");

@@ -57,9 +57,14 @@ describe("renderQuestCall", () => {
     expect(getText(result)).toContain("[03]");
   });
 
-  it("renders revert action", () => {
-    const result = renderQuestCall({ action: QUEST_ACTIONS.revert }, mockTheme, {});
-    expect(getText(result)).toContain("quest revert");
+  it("renders undo action", () => {
+    const result = renderQuestCall({ action: QUEST_ACTIONS.undo }, mockTheme, {});
+    expect(getText(result)).toContain("quest undo");
+  });
+
+  it("renders redo action", () => {
+    const result = renderQuestCall({ action: QUEST_ACTIONS.redo }, mockTheme, {});
+    expect(getText(result)).toContain("quest redo");
   });
 
   it("renders reorder action with targetId", () => {
