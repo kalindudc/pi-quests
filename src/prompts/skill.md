@@ -5,56 +5,53 @@ description: Quest management best practices for the pi-quests extension. Use wh
 
 # Quest Management
 
-## When to use quests
+This skill provides guidelines and best practices for using the quest management system in the pi-quests extension. It covers the core actions available for managing quests, recommended workflows for common use cases, and important rules to follow for effective task tracking and progress management.
 
-Use the quest tool at the start of any non-trivial task. If the request involves multiple steps, files, tool calls, or minion delegation, track it with quests.
+## Action Reference
 
-## Capabilities
+| Action | Required Params | Behavior |
+|--------|----------------|----------|
+| `add` | `descriptions[]` | Create top-level quests. Batch multiple descriptions in one call. |
+| `split` | `id`, `descriptions[]` | Break a quest into steps under it. Alias: `add_step`. |
+| `list` | — | View all quests and steps. |
+| `toggle` | `id` | Flip done status. Blocked if parent has incomplete steps. |
+| `update` | `id`, `description` | Change description. |
+| `delete` | `id` | Remove a quest. Blocked if parent has incomplete steps. Cascade-deletes done steps of a done parent. |
+| `clear` | — | Remove completed quests. `all: true` removes everything. |
+| `reorder` | `id`, `targetId` | Move a top-level quest before `targetId`. Steps cannot be reordered. |
+| `reparent` | `id`, `parentId?` | Demote to step under `parentId`, or promote to top-level if `parentId` omitted. |
+| `revert` | — | Undo the most recent mutating action. One level only. |
+| `rules` / `skill` | — | Return this document. |
 
-| Action | Purpose |
-|--------|---------|
-| `add` | Create top-level quests |
-| `split` / `add_step` | Break a quest into steps under a parent |
-| `reparent` | Promote, demote, or move a quest/step via optional `parentId` |
-| `toggle` | Mark a quest or step done/undone |
-| `update` | Change a quest description |
-| `delete` | Remove a quest or step |
-| `clear` | Remove completed quests (or all with `all: true`) |
-| `reorder` | Change the priority order of top-level quests |
-| `revert` | Undo the most recent mutating action |
-| `list` | View all quests and steps |
+## Workflows
 
-## Common patterns
+### Multi-step task
+1. `add` top-level quests for the overall goal
+2. `split` them into steps for each deliverable
+3. Execute steps sequentially, `toggle` each done as you finish
+4. `add` other top-level quests for other related work of this goal
+4. `toggle` the parent done only after all steps are complete
 
-### Multi-step task workflow
-1. Add many top-level quests for the overall goal
-2. Split them into steps for each distinct deliverable
-3. Execute steps sequentially, toggling each done as you finish
-4. Toggle the parent quest done only after all steps are complete
-
-### Delegation workflow
-1. Add a quest for the delegated task
-2. Spawn the minion and assign the work
-3. Toggle the quest done when the minion returns successfully
+### Delegation
+1. `add` a quest for the delegated task
+2. `spawn` the minion and assign the work
+3. `toggle` the quest done when the minion returns successfully
 
 ### Reparenting
 - Promote a step: `reparent <step-id>` (omit `parentId`)
 - Demote a quest: `reparent <quest-id> <parent-id>`
 - Move a step: `reparent <step-id> <new-parent-id>`
 
+### Cleanup
+- `clear` completed quests before adding unrelated work. Keeps the log focused.
+
 ## Rules
 
-- Steps cannot have nested steps. Only top-level quests can be parents.
-- A parent with incomplete steps cannot be toggled done or deleted.
-- Deleting a done parent cascade-deletes its done steps.
-- Revert only undoes the most recent mutating action.
-- Quest IDs are random hex strings shown in square brackets (e.g., `[01]`, `[a3f1]`).
-- Always use the hex ID for actions, never the positional number.
-
-## Gotchas
-
-- Use toggle for done states. NEVER use `update` to append "DONE", "- DONE", or any completion marker to a quest description.
-- IDs are hex, not positional. The list shows `#1 [01] ...`. Use `01` in tool calls, not `1`.
-- Steps cannot be reordered independently. Use `reorder` on top-level quests only.
-- Clear completed quests before adding unrelated work. This keeps the log focused and reduces context noise.
-- Parent blocked?: If you cannot toggle a parent done, check that all its steps are toggled done first.
+- ALWAYS use quests for any work that involves multiple turns.
+- NEVER try to nest steps. Only top-level quests can be parents.
+- NEVER mark a parent as done if they have incomplete steps.
+- NEVER delete a quest with incomplete steps.
+- Use revert if you make a mistake to undo an action.
+- ALWAYS use the hex ID, never the positional number when referring to quests in actions.
+- ALWAYS Use `toggle` for done states. NEVER use `update` to append "DONE" or any completion marker to a description.
+- If a parent toggle is blocked, check that all its steps are done first.

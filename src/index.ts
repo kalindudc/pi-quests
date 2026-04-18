@@ -22,7 +22,7 @@ import { registerQuestTool } from "./tools/handler.js";
  * - Provide rollback support to restore a previous snapshot.
  */
 const NO_QUESTS_REMINDER =
-  "No active quests. Use the quest tool to track your work. Use action: 'skill' for usage documentation.";
+  "No active quests. Use the learn_quests tool to understand how to use quests and use quests to track this task. DO THIS NOW and acknowledge it.";
 
 const FAKE_DONE_REMINDER =
   "QUEST REMINDER: A quest has a completion marker appended to its description but is not toggled done. Use the list action to find it, then toggle it done. NEVER append completion markers via update.";
@@ -121,7 +121,11 @@ export default function (pi: ExtensionAPI): void {
   });
 
   pi.on("before_agent_start", async (event) => {
-    if (tracker.hasUsedQuestTool) return undefined;
+    if (questLog.getAll().length === 0)
+      return {
+        systemPrompt: `${event.systemPrompt}\n\nUse quests to track this task. DO THIS now and acknowledge it.`,
+      };
+
     return {
       systemPrompt: `# Quest Management\n${QUEST_PROMPT_GATE}${event.systemPrompt}\n\n## Quest Management\n${NO_QUESTS_REMINDER}`,
     };

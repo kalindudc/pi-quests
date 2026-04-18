@@ -166,13 +166,13 @@ describe("questToolExecute", () => {
     expect((details.displayQuests![0] as { description: string }).description).toBe("A");
   });
 
-  it("omits displayQuests for clear", async () => {
+  it("sets empty displayQuests for clear", async () => {
     const log = createLog();
     log.add("A");
     const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.clear, all: true });
     const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
     expect(details.quests).toHaveLength(0);
-    expect(details.displayQuests).toBeUndefined();
+    expect(details.displayQuests).toEqual([]);
   });
 
   it("reparents a quest via tool", async () => {

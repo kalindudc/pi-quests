@@ -24,10 +24,33 @@ describe("extension entry point", () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
     init(pi as unknown as ExtensionAPI);
+    const branch = [
+      {
+        type: "message",
+        message: {
+          role: "toolResult",
+          toolName: "quest",
+          details: {
+            quests: [{ id: "01", description: "Test task", done: false, createdAt: 1 }],
+          },
+        },
+      },
+    ];
+    await pi._handlers.session_start[0](
+      {},
+      {
+        cwd: "/tmp",
+        sessionManager: { getBranch: vi.fn().mockReturnValue(branch) },
+        ui: {
+          setStatus: vi.fn(),
+          theme: { fg: vi.fn((_, t) => t), bold: vi.fn((t) => t), strikethrough: vi.fn((t) => t) },
+        },
+      },
+    );
     const handler = pi._handlers.before_agent_start[0];
     const result = await handler({ systemPrompt: "base" });
     expect(result.systemPrompt).toContain("Quest Management");
-    expect(result.systemPrompt).toContain("Use action: 'skill' for usage documentation");
+    expect(result.systemPrompt).toContain("Use the learn_quests tool");
   });
 
   it("suppresses Quest Management on resume when reconstructed quests exist (seed path)", async () => {
@@ -58,19 +81,20 @@ describe("extension entry point", () => {
       },
     );
     // Seed path fired during reconstruction (questLog.getAll().length > 0),
-    // so before_agent_start returns undefined to suppress the static suffix.
+    // so before_agent_start injects the Quest Management section.
     const result = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
-    expect(result).toBeUndefined();
+    expect(result.systemPrompt).toContain("Quest Management");
+    expect(result.systemPrompt).toContain("Use the learn_quests tool");
   });
 
-  it("suppresses Quest Management after first quest tool use", async () => {
+  it("shows an alternate prompt after first quest tool use", async () => {
     const pi = createMockPi();
     const { default: init } = await import("../src/index.js");
     init(pi as unknown as ExtensionAPI);
     // Before first quest tool use, suffix is injected.
     const before = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
-    expect(before.systemPrompt).toContain("Quest Management");
-    // After first quest tool execution, suffix is suppressed.
+    expect(before.systemPrompt).toContain("Use quests to track this task");
+    // After first quest tool execution.
     await pi._handlers.tool_execution_end[0](
       { toolName: "quest" },
       {
@@ -81,7 +105,7 @@ describe("extension entry point", () => {
       },
     );
     const after = await pi._handlers.before_agent_start[0]({ systemPrompt: "base" });
-    expect(after).toBeUndefined();
+    expect(after.systemPrompt).toContain("Use quests to track this task");
   });
 
   it("nudges.enable=false short-circuits context handler even after many tool calls", async () => {

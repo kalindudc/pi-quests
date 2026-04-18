@@ -1,5 +1,5 @@
 import type { AgentToolResult, ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import type { Static } from "@sinclair/typebox";
+import { type Static, Type } from "@sinclair/typebox";
 import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "../prompts.js";
@@ -106,7 +106,7 @@ function runTool(
     ? questLog.getAll()
     : result.quest
       ? [result.quest]
-      : undefined;
+      : [];
 
   return makeToolResult(result.message, questLog, displayQuests);
 }
@@ -132,15 +132,35 @@ export function registerQuestTool(
     label: "Quest",
     description:
       "Manage the session quest log and retrieve the complete quest system documentation. " +
-      "Use this VERY frequently to track tasks, plans, and progress. " +
       "When you need to understand quests, steps, rules, or best practices, use action: 'skill' or action: 'rules'.",
     promptSnippet:
-      "Manage quests and steps, or retrieve quest rules and best practices via skill/rules",
+      "Manage quests and steps, or retrieve quest rules and best practices via skill/rules. " +
+      "Use this VERY frequently to track tasks, plans, and progress. ",
     promptGuidelines: [QUEST_PROMPT_GATE, ...QUEST_PROMPT_REMINDER],
     parameters: createQuestParams(config.ids.length),
     execute: (toolCallId, params, _signal, _onUpdate, _ctx) =>
       questToolExecute(questLog, toolCallId, params),
     renderCall: renderQuestCall,
+    renderResult: renderQuestResult(config),
+  });
+
+  pi.registerTool({
+    name: "learn_quests",
+    label: "Learn Quests",
+    description: "Learn about the quest system and how to use it effectively.",
+    promptSnippet: "Use this tool to learn about the quest system and how to use it effectively.",
+    promptGuidelines: [
+      "Use this tool when on a session to understand how and when to use quests.",
+      "ALWAYS run this tool when on a new session before starting any work.",
+    ],
+    parameters: Type.Object(
+      {},
+      { description: "No parameters required for learning about quests" },
+    ),
+    execute: async (_toolCallId, _params, _signal, _onUpdate, _ctx) =>
+      questToolExecute(questLog, "learn_quests", { action: QUEST_ACTIONS.skill }),
+    renderCall: (_args, theme, context) =>
+      renderQuestCall({ action: QUEST_ACTIONS.skill }, theme, context),
     renderResult: renderQuestResult(config),
   });
 }
