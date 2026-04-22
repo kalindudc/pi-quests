@@ -22,7 +22,13 @@ export function createQuestParams(idLength: number) {
     id: Type.Optional(
       Type.String({
         pattern,
-        description: `Quest ID (required for toggle, update, delete, reorder actions). ALWAYS use the ${idLength}-digit hex ID shown in brackets, never the positional number.`,
+        description: `Quest ID (required for update, reorder, and reparent actions. For toggle and delete, provide either id or ids. ALWAYS use the ${idLength}-digit hex ID shown in brackets, never the positional number.`,
+      }),
+    ),
+    ids: Type.Optional(
+      Type.Array(Type.String({ pattern }), {
+        minItems: 1,
+        description: `Quest IDs for batch toggle or delete actions. Use this when operating on more than one ${idLength}-digit hex quest ID at once.`,
       }),
     ),
     targetId: Type.Optional(

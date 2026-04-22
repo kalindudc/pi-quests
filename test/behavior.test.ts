@@ -68,6 +68,37 @@ describe("quest behavior", () => {
       expect(log.getAll()[0]!.done).toBe(false);
     });
 
+    it("toggles multiple tasks through the command adapter", async () => {
+      const log = new QuestLog();
+      const handler = createCommandHandler(log);
+      const ctx = createMockCtx();
+
+      await handler("add Parent", ctx);
+      await handler("add-step 01 Sub", ctx);
+      await handler("toggle 01 02", ctx);
+
+      expect(log.getAll()).toHaveLength(2);
+      expect(log.getAll().every((quest) => quest.done)).toBe(true);
+      expect(ctx.ui.notify).toHaveBeenCalledWith("Toggled 2 tasks:\n[01] done\n[02] done", "info");
+    });
+
+    it("deletes multiple tasks through the command adapter when child steps are explicitly selected", async () => {
+      const log = new QuestLog();
+      const handler = createCommandHandler(log);
+      const ctx = createMockCtx();
+
+      await handler("add Parent", ctx);
+      await handler("add-step 01 Sub", ctx);
+      await handler("add Another", ctx);
+      await handler("delete 01 02 03", ctx);
+
+      expect(log.getAll()).toHaveLength(0);
+      expect(ctx.ui.notify).toHaveBeenCalledWith(
+        "Deleted 3 tasks:\n[01] Parent\n[02] Sub\n[03] Another",
+        "info",
+      );
+    });
+
     it("reconstructs session state and continues accepting commands", async () => {
       const log = new QuestLog();
       const entries = [
@@ -161,6 +192,52 @@ describe("quest behavior", () => {
       });
       expect(getText(ok.content[0]!)).toContain("Quest [01] done");
       expect(log.getAll()[0]!.done).toBe(true);
+    });
+
+    it("end-to-end batch toggles a parent and step together", async () => {
+      const log = new QuestLog();
+      await questToolExecute(log, "tc1", {
+        action: QUEST_ACTIONS.add,
+        descriptions: ["Parent"],
+      });
+      await questToolExecute(log, "tc2", {
+        action: QUEST_ACTIONS.split,
+        id: "01",
+        descriptions: ["Sub"],
+      });
+
+      const result = await questToolExecute(log, "tc3", {
+        action: QUEST_ACTIONS.toggle,
+        ids: ["01", "02"],
+      });
+
+      expect(getText(result.content[0]!)).toContain("Toggled 2 tasks");
+      expect(log.getAll().every((quest) => quest.done)).toBe(true);
+    });
+
+    it("end-to-end batch deletes a parent and another task when the child step is explicitly selected", async () => {
+      const log = new QuestLog();
+      await questToolExecute(log, "tc1", {
+        action: QUEST_ACTIONS.add,
+        descriptions: ["Parent"],
+      });
+      await questToolExecute(log, "tc2", {
+        action: QUEST_ACTIONS.split,
+        id: "01",
+        descriptions: ["Sub"],
+      });
+      await questToolExecute(log, "tc3", {
+        action: QUEST_ACTIONS.add,
+        descriptions: ["Another"],
+      });
+
+      const result = await questToolExecute(log, "tc4", {
+        action: QUEST_ACTIONS.delete,
+        ids: ["01", "02", "03"],
+      });
+
+      expect(getText(result.content[0]!)).toContain("Deleted 3 tasks");
+      expect(log.getAll()).toHaveLength(0);
     });
   });
 });

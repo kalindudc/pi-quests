@@ -87,6 +87,18 @@ describe("questToolExecute", () => {
     expect(getText(result.content[0]!)).toContain("Quest [01] done");
   });
 
+  it("toggles multiple tasks", async () => {
+    const log = createLog();
+    log.add("Parent");
+    log.addStep("Sub", "01");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.toggle,
+      ids: ["01", "02"],
+    });
+    expect(getText(result.content[0]!)).toContain("Toggled 2 tasks");
+    expect(log.getAll().every((quest) => quest.done)).toBe(true);
+  });
+
   it("clears quests", async () => {
     const log = createLog();
     log.add("A");
@@ -111,6 +123,19 @@ describe("questToolExecute", () => {
     log.add("Old");
     const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: "01" });
     expect(getText(result.content[0]!)).toContain("Deleted quest [01]");
+    expect(log.getAll()).toHaveLength(0);
+  });
+
+  it("deletes multiple tasks when all incomplete child steps are selected", async () => {
+    const log = createLog();
+    log.add("Parent");
+    log.addStep("Sub", "01");
+    log.add("Another");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.delete,
+      ids: ["01", "02", "03"],
+    });
+    expect(getText(result.content[0]!)).toContain("Deleted 3 tasks");
     expect(log.getAll()).toHaveLength(0);
   });
 
@@ -150,6 +175,22 @@ describe("questToolExecute", () => {
     expect((details.displayQuests![0] as { done: boolean }).done).toBe(true);
   });
 
+  it("includes all affected tasks in displayQuests for batch toggle", async () => {
+    const log = createLog();
+    log.add("Parent");
+    log.addStep("Sub", "01");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.toggle,
+      ids: ["01", "02"],
+    });
+    const details = result.details as { quests: unknown[]; displayQuests?: unknown[] };
+    expect(details.quests).toHaveLength(2);
+    expect(details.displayQuests).toHaveLength(2);
+    expect((details.displayQuests ?? []).every((quest) => (quest as { done: boolean }).done)).toBe(
+      true,
+    );
+  });
+
   it("includes only affected quest in displayQuests for update", async () => {
     const log = createLog();
     log.add("A");
@@ -172,6 +213,25 @@ describe("questToolExecute", () => {
     expect(details.quests).toHaveLength(0);
     expect(details.displayQuests).toHaveLength(1);
     expect((details.displayQuests![0] as { description: string }).description).toBe("A");
+  });
+
+  it("includes deleted snapshots for batch delete rendering", async () => {
+    const log = createLog();
+    log.add("Parent");
+    log.addStep("Sub", "01");
+    log.add("Another");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.delete,
+      ids: ["01", "02", "03"],
+    });
+    const details = result.details as {
+      quests: unknown[];
+      displayQuests?: unknown[];
+      snapshotQuests?: unknown[];
+    };
+    expect(details.quests).toHaveLength(0);
+    expect(details.displayQuests).toHaveLength(3);
+    expect(details.snapshotQuests).toHaveLength(3);
   });
 
   it("sets empty displayQuests for clear", async () => {
@@ -256,6 +316,19 @@ describe("questToolExecute", () => {
     const result = await questToolExecute(log, "tc1", { action: QUEST_ACTIONS.delete, id: "01" });
     expect(getText(result.content[0]!)).toContain("incomplete steps");
     expect(log.getAll()).toHaveLength(2);
+  });
+
+  it("batch delete is blocked when an incomplete child step is not explicitly selected", async () => {
+    const log = createLog();
+    log.add("Parent");
+    log.addStep("Sub", "01");
+    log.add("Another");
+    const result = await questToolExecute(log, "tc1", {
+      action: QUEST_ACTIONS.delete,
+      ids: ["01", "03"],
+    });
+    expect(getText(result.content[0]!)).toContain("incomplete steps");
+    expect(log.getAll()).toHaveLength(3);
   });
 });
 

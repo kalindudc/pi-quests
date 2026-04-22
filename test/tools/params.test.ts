@@ -8,4 +8,9 @@ describe("QuestParams", () => {
     const actionSchema = params.properties.action as { enum?: string[] };
     expect(actionSchema.enum).toEqual(QUEST_ACTION_VALUES);
   });
+
+  it("includes ids for batch toggle", () => {
+    const params = createQuestParams(2);
+    expect(params.properties.ids).toBeDefined();
+  });
 });

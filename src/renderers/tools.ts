@@ -11,6 +11,7 @@ type QuestArgs = {
   descriptions?: string[];
   targetId?: string;
   id?: string;
+  ids?: string[];
   all?: boolean;
 };
 
@@ -31,12 +32,29 @@ export function renderQuestCall(args: QuestArgs, theme: Theme, _context: unknown
     );
   }
 
-  if (
-    (args.action === QUEST_ACTIONS.toggle ||
-      args.action === QUEST_ACTIONS.update ||
-      args.action === QUEST_ACTIONS.delete) &&
-    args.id !== undefined
-  ) {
+  if (args.action === QUEST_ACTIONS.toggle) {
+    if (args.ids && args.ids.length > 1) {
+      return new Text(`${actionText} ${theme.fg("muted", `[${args.ids.length} tasks]`)}`, 0, 0);
+    }
+
+    const toggleId = args.id ?? args.ids?.[0];
+    if (toggleId !== undefined) {
+      return new Text(`${actionText} ${theme.fg("muted", `[${toggleId}]`)}`, 0, 0);
+    }
+  }
+
+  if (args.action === QUEST_ACTIONS.delete) {
+    if (args.ids && args.ids.length > 1) {
+      return new Text(`${actionText} ${theme.fg("muted", `[${args.ids.length} tasks]`)}`, 0, 0);
+    }
+
+    const deleteId = args.id ?? args.ids?.[0];
+    if (deleteId !== undefined) {
+      return new Text(`${actionText} ${theme.fg("muted", `[${deleteId}]`)}`, 0, 0);
+    }
+  }
+
+  if (args.action === QUEST_ACTIONS.update && args.id !== undefined) {
     return new Text(`${actionText} ${theme.fg("muted", `[${args.id}]`)}`, 0, 0);
   }
 
@@ -59,8 +77,11 @@ export function renderQuestResult(config: ResolvedConfig) {
       isPartial: options.isPartial,
     });
     const details = result.details as Record<string, unknown> | undefined;
-    const allQuests = details?.quests as Quest[] | undefined;
-    const questsToRender = (details?.displayQuests ?? details?.quests) as Quest[] | undefined;
+    const snapshotQuests = details?.snapshotQuests as Quest[] | undefined;
+    const allQuests = (snapshotQuests ?? details?.quests) as Quest[] | undefined;
+    const questsToRender = (snapshotQuests ?? details?.displayQuests ?? details?.quests) as
+      | Quest[]
+      | undefined;
 
     if (
       !Array.isArray(questsToRender) ||
