@@ -112,6 +112,15 @@ describe("createQuestsHandler", () => {
     expect(ctx.ui.notify).toHaveBeenCalledWith("Quest [01] undone", "info");
   });
 
+  it("toggles multiple tasks in one command", async () => {
+    const ctx = createMockCtx();
+    const handler = createHandler();
+    await handler("add Parent", ctx);
+    await handler("add-step 01 Sub", ctx);
+    await handler("toggle 01 02", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith("Toggled 2 tasks:\n[01] done\n[02] done", "info");
+  });
+
   it("shows error when toggling nonexistent quest", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
@@ -148,12 +157,38 @@ describe("createQuestsHandler", () => {
     expect(ctx.ui.notify).toHaveBeenCalledWith("Deleted quest [01]: Delete me", "info");
   });
 
+  it("deletes multiple tasks in one command when all incomplete child steps are selected", async () => {
+    const ctx = createMockCtx();
+    const handler = createHandler();
+    await handler("add Parent", ctx);
+    await handler("add-step 01 Sub", ctx);
+    await handler("add Another", ctx);
+    await handler("delete 01 02 03", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      "Deleted 3 tasks:\n[01] Parent\n[02] Sub\n[03] Another",
+      "info",
+    );
+  });
+
   it("shows error when deleting nonexistent quest", async () => {
     const ctx = createMockCtx();
     const handler = createHandler();
     await handler("delete ff", ctx);
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       expect.stringContaining("Quest [ff] not found"),
+      "error",
+    );
+  });
+
+  it("blocks batch delete when an incomplete child step is not explicitly selected", async () => {
+    const ctx = createMockCtx();
+    const handler = createHandler();
+    await handler("add Parent", ctx);
+    await handler("add-step 01 Sub", ctx);
+    await handler("add Another", ctx);
+    await handler("delete 01 03", ctx);
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("Quest [01] has incomplete steps"),
       "error",
     );
   });

@@ -52,7 +52,11 @@ const toolHandlers: {
     return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.list });
   },
   [QUEST_ACTIONS.toggle](questLog, params, toolCallId) {
-    return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.toggle, id: params.id });
+    return runTool(questLog, toolCallId, {
+      type: QUEST_ACTIONS.toggle,
+      id: params.id,
+      ids: params.ids,
+    });
   },
   [QUEST_ACTIONS.update](questLog, params, toolCallId) {
     return runTool(questLog, toolCallId, {
@@ -62,7 +66,11 @@ const toolHandlers: {
     });
   },
   [QUEST_ACTIONS.delete](questLog, params, toolCallId) {
-    return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.delete, id: params.id });
+    return runTool(questLog, toolCallId, {
+      type: QUEST_ACTIONS.delete,
+      id: params.id,
+      ids: params.ids,
+    });
   },
   [QUEST_ACTIONS.clear](questLog, params, toolCallId) {
     return runTool(questLog, toolCallId, { type: QUEST_ACTIONS.clear, all: params.all });
@@ -108,11 +116,10 @@ function runTool(
     action.type as (typeof SPLIT_DISPLAY_ACTIONS)[number],
   )
     ? questLog.getAll()
-    : result.quest
-      ? [result.quest]
-      : [];
+    : (result.quests ?? (result.quest ? [result.quest] : []));
+  const snapshotQuests = action.type === QUEST_ACTIONS.delete ? displayQuests : undefined;
 
-  return makeToolResult(result.message, questLog, displayQuests);
+  return makeToolResult(result.message, questLog, displayQuests, snapshotQuests);
 }
 
 export async function questToolExecute(
@@ -120,7 +127,12 @@ export async function questToolExecute(
   toolCallId: string,
   params: QuestToolParams,
 ): Promise<AgentToolResult<unknown>> {
-  logger.debug("quests:tool", "execute", { toolCallId, action: params.action, id: params.id });
+  logger.debug("quests:tool", "execute", {
+    toolCallId,
+    action: params.action,
+    id: params.id,
+    ids: params.ids,
+  });
   const handler = toolHandlers[params.action];
   return handler(questLog, params, toolCallId);
 }

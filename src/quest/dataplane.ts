@@ -5,6 +5,8 @@ import { getQuestSkillDocument } from "../prompts.js";
 import {
   formatAddResult,
   formatBatchAddResult,
+  formatBatchDeleteResult,
+  formatBatchToggleResult,
   formatBlockedBySteps,
   formatDeleteResult,
   formatDescriptionRequiredError,
@@ -33,17 +35,17 @@ import {
 } from "./formatters.js";
 import { QUEST_ACTIONS, type Quest, type Step } from "./types.js";
 
+type DeletedQuestSnapshot = {
+  deletedIds: string[];
+  previousQuests: Quest[];
+  previousSteps: Step[];
+};
+
 export type HistoryEntry =
   | { type: typeof QUEST_ACTIONS.add; id: string; parentId?: string }
-  | { type: typeof QUEST_ACTIONS.toggle; id: string }
+  | { type: typeof QUEST_ACTIONS.toggle; ids: string[] }
   | { type: typeof QUEST_ACTIONS.update; id: string; previousDescription: string }
-  | {
-      type: typeof QUEST_ACTIONS.delete;
-      quest: Quest | Step;
-      index: number;
-      isStep?: boolean;
-      cascadeDeletedSteps?: Step[];
-    }
+  | ({ type: typeof QUEST_ACTIONS.delete; ids: string[] } & DeletedQuestSnapshot)
   | {
       type: typeof QUEST_ACTIONS.clear;
       previousQuests: Quest[];
@@ -70,9 +72,9 @@ export type QuestAction =
   | { type: typeof QUEST_ACTIONS.split; id?: string; descriptions?: string[] }
   | { type: typeof QUEST_ACTIONS.add_step; id?: string; descriptions?: string[] }
   | { type: typeof QUEST_ACTIONS.list }
-  | { type: typeof QUEST_ACTIONS.toggle; id?: string }
+  | { type: typeof QUEST_ACTIONS.toggle; id?: string; ids?: string[] }
   | { type: typeof QUEST_ACTIONS.update; id?: string; description?: string }
-  | { type: typeof QUEST_ACTIONS.delete; id?: string }
+  | { type: typeof QUEST_ACTIONS.delete; id?: string; ids?: string[] }
   | { type: typeof QUEST_ACTIONS.clear; all?: boolean }
   | { type: typeof QUEST_ACTIONS.reorder; id?: string; targetId?: string }
   | { type: typeof QUEST_ACTIONS.undo }
@@ -83,14 +85,27 @@ export type QuestAction =
 
 export type RedoEntry =
   | { type: typeof QUEST_ACTIONS.add; quest: Quest | Step }
-  | { type: typeof QUEST_ACTIONS.toggle; id: string }
+  | { type: typeof QUEST_ACTIONS.toggle; ids: string[] }
   | { type: typeof QUEST_ACTIONS.update; id: string; description: string }
-  | { type: typeof QUEST_ACTIONS.delete; id: string }
+  | { type: typeof QUEST_ACTIONS.delete; ids: string[] }
   | { type: typeof QUEST_ACTIONS.clear; all: boolean }
   | { type: typeof QUEST_ACTIONS.reorder; id: string; targetId: string }
   | { type: typeof QUEST_ACTIONS.reparent; id: string; parentId?: string };
 
-export type QuestOperationResult = { success: boolean; message: string; quest?: Quest };
+export type QuestOperationResult = {
+  success: boolean;
+  message: string;
+  quest?: Quest;
+  quests?: Quest[];
+};
+
+type ToggleBatchResult =
+  | { quests: (Quest | Step)[]; ids: string[] }
+  | { error: "notFound" | "blocked"; id: string };
+
+type DeleteBatchResult =
+  | { quests: (Quest | Step)[]; ids: string[] }
+  | { error: "notFound" | "blocked"; id: string };
 
 /**
  * In-memory quest data plane.
@@ -149,16 +164,30 @@ export class QuestLog {
       return { success: true, message: `Reverted add quest [${entry.id}]` };
     },
     [QUEST_ACTIONS.toggle]: (entry) => {
-      const quest = this.findById(entry.id);
+      const quests = entry.ids.map((id) => this.findById(id));
+      const missingId = entry.ids.find((_, index) => !quests[index]);
 
-      if (quest) {
-        quest.done = !quest.done;
-        logger.debug("quests:state", "revert-toggle", { id: entry.id, done: quest.done });
-        return { success: true, message: `Reverted toggle for quest [${entry.id}]` };
+      if (missingId) {
+        logger.debug("quests:state", "revert-toggle-not-found", { ids: entry.ids, missingId });
+        return { success: false, message: formatNotFound(missingId) };
       }
 
-      logger.debug("quests:state", "revert-toggle-not-found", { id: entry.id });
-      return { success: false, message: formatNotFound(entry.id) };
+      const resolvedQuests = quests.filter((quest): quest is Quest | Step => quest !== undefined);
+      for (const quest of resolvedQuests) {
+        quest.done = !quest.done;
+      }
+
+      logger.debug("quests:state", "revert-toggle", {
+        ids: entry.ids,
+        done: resolvedQuests.map((quest) => quest.done),
+      });
+      return {
+        success: true,
+        message:
+          entry.ids.length === 1
+            ? `Reverted toggle for quest [${entry.ids[0]}]`
+            : `Reverted toggle for ${entry.ids.length} quests`,
+      };
     },
     [QUEST_ACTIONS.update]: (entry) => {
       const quest = this.findById(entry.id);
@@ -172,25 +201,21 @@ export class QuestLog {
       return { success: false, message: formatNotFound(entry.id) };
     },
     [QUEST_ACTIONS.delete]: (entry) => {
-      if (entry.isStep) {
-        this.steps.splice(entry.index, 0, entry.quest as Step);
-      } else {
-        this.quests.splice(entry.index, 0, entry.quest);
-        if (entry.cascadeDeletedSteps) {
-          for (const sub of entry.cascadeDeletedSteps) {
-            this.steps.push(sub);
-            this.usedIds.add(sub.id);
-          }
-        }
-      }
-      this.usedIds.add(entry.quest.id);
+      this.quests = [...entry.previousQuests];
+      this.steps = [...entry.previousSteps];
+      this.usedIds = new Set([...this.quests, ...this.steps].map((quest) => quest.id));
 
       logger.debug("quests:state", "revert-delete", {
-        id: entry.quest.id,
-        index: entry.index,
+        ids: entry.deletedIds,
         total: this.quests.length + this.steps.length,
       });
-      return { success: true, message: `Reverted delete for quest [${entry.quest.id}]` };
+      return {
+        success: true,
+        message:
+          entry.ids.length === 1
+            ? `Reverted delete for quest [${entry.ids[0]}]`
+            : `Reverted delete for ${entry.ids.length} tasks`,
+      };
     },
     [QUEST_ACTIONS.clear]: (entry) => {
       if ("previousQuests" in entry) {
@@ -265,9 +290,24 @@ export class QuestLog {
       return { success: true, message: `Redone add quest [${entry.quest.id}]` };
     },
     [QUEST_ACTIONS.toggle]: (entry) => {
-      const q = this.toggle(entry.id);
-      if (q) return { success: true, message: `Redone toggle for quest [${entry.id}]` };
-      return { success: false, message: formatNotFound(entry.id) };
+      const result = this.toggleMany(entry.ids);
+      if ("error" in result) {
+        return {
+          success: false,
+          message:
+            result.error === "blocked"
+              ? formatBlockedBySteps(result.id)
+              : formatNotFound(result.id),
+        };
+      }
+
+      return {
+        success: true,
+        message:
+          entry.ids.length === 1
+            ? `Redone toggle for quest [${entry.ids[0]}]`
+            : `Redone toggle for ${entry.ids.length} quests`,
+      };
     },
     [QUEST_ACTIONS.update]: (entry) => {
       const q = this.update(entry.id, entry.description);
@@ -275,10 +315,25 @@ export class QuestLog {
       return { success: false, message: formatNotFound(entry.id) };
     },
     [QUEST_ACTIONS.delete]: (entry) => {
-      const q = this.delete(entry.id);
-      if (q === undefined) return { success: false, message: formatNotFound(entry.id) };
-      if (q === null) return { success: false, message: formatBlockedBySteps(entry.id) };
-      return { success: true, message: `Redone delete for quest [${entry.id}]` };
+      const result = this.deleteMany(entry.ids);
+      if ("error" in result) {
+        return {
+          success: false,
+          message:
+            result.error === "blocked"
+              ? formatBlockedBySteps(result.id)
+              : formatNotFound(result.id),
+        };
+      }
+
+      const firstQuest = result.quests[0];
+      return {
+        success: true,
+        message:
+          entry.ids.length === 1 && firstQuest
+            ? `Redone delete for quest [${firstQuest.id}]`
+            : `Redone delete for ${entry.ids.length} tasks`,
+      };
     },
     [QUEST_ACTIONS.clear]: (entry) => {
       const count = this.clear(entry.all);
@@ -356,6 +411,67 @@ export class QuestLog {
     return this.quests.find((q) => q.id === id) ?? this.steps.find((step) => step.id === id);
   }
 
+  private normalizeIds(ids: string[]): string[] {
+    return [...new Set(ids)];
+  }
+
+  private validateToggleBatch(ids: string[]): ToggleBatchResult {
+    const normalizedIds = this.normalizeIds(ids);
+    const quests: (Quest | Step)[] = [];
+
+    for (const id of normalizedIds) {
+      const quest = this.findById(id);
+      if (!quest) {
+        logger.debug("quests:state", "toggle-not-found", { id });
+        return { error: "notFound", id };
+      }
+      quests.push(quest);
+    }
+
+    const toggledIds = new Set(normalizedIds);
+    for (const quest of quests) {
+      if (quest.done || "parentId" in quest) continue;
+
+      const steps = this.getSteps(quest.id);
+      const hasIncompleteSteps = steps.some((step) => {
+        const finalDone = toggledIds.has(step.id) ? !step.done : step.done;
+        return !finalDone;
+      });
+
+      if (hasIncompleteSteps) {
+        logger.debug("quests:state", "toggle-blocked-steps", { id: quest.id, ids: normalizedIds });
+        return { error: "blocked", id: quest.id };
+      }
+    }
+
+    return { quests, ids: normalizedIds };
+  }
+
+  private applyToggleBatch(quests: (Quest | Step)[], ids: string[]): Quest[] {
+    for (const quest of quests) {
+      quest.done = !quest.done;
+    }
+
+    this.history.push({ type: QUEST_ACTIONS.toggle, ids });
+    logger.debug("quests:state", QUEST_ACTIONS.toggle, {
+      ids,
+      total: this.quests.length + this.steps.length,
+    });
+
+    return quests;
+  }
+
+  toggleMany(ids: string[]): ToggleBatchResult {
+    if (!this.inRedo) this.redoStack = [];
+    const result = this.validateToggleBatch(ids);
+    if ("error" in result) return result;
+
+    return {
+      ids: result.ids,
+      quests: this.applyToggleBatch(result.quests, result.ids),
+    };
+  }
+
   getUsedIds(): string[] {
     return Array.from(this.usedIds);
   }
@@ -425,30 +541,12 @@ export class QuestLog {
   }
 
   toggle(id: string): Quest | Step | null | undefined {
-    if (!this.inRedo) this.redoStack = [];
-    const quest = this.findById(id);
-    if (!quest) {
-      logger.debug("quests:state", "toggle-not-found", { id });
-      return undefined;
+    const result = this.toggleMany([id]);
+    if ("error" in result) {
+      return result.error === "blocked" ? null : undefined;
     }
 
-    if (!quest.done && !("parentId" in quest)) {
-      const steps = this.getSteps(id);
-      if (steps.some((q) => !q.done)) {
-        logger.debug("quests:state", "toggle-blocked-steps", { id });
-        return null;
-      }
-    }
-
-    quest.done = !quest.done;
-    this.history.push({ type: QUEST_ACTIONS.toggle, id });
-
-    logger.debug("quests:state", QUEST_ACTIONS.toggle, {
-      id,
-      done: quest.done,
-      total: this.quests.length + this.steps.length,
-    });
-    return quest;
+    return result.quests[0];
   }
 
   update(id: string, description: string): Quest | Step | undefined {
@@ -470,47 +568,87 @@ export class QuestLog {
     return quest;
   }
 
-  delete(id: string): Quest | Step | null | undefined {
-    if (!this.inRedo) this.redoStack = [];
-    const index = this.quests.findIndex((q) => q.id === id);
-    if (index !== -1) {
-      const steps = this.getSteps(id);
-      if (steps.some((q) => !q.done)) {
-        logger.debug("quests:state", "delete-blocked-steps", { id });
-        return null;
+  private validateDeleteBatch(
+    ids: string[],
+  ): { ids: string[]; deletedIds: string[] } | { error: "notFound" | "blocked"; id: string } {
+    const normalizedIds = this.normalizeIds(ids);
+    const selectedIds = new Set(normalizedIds);
+    const deletedIds = new Set<string>();
+
+    for (const id of normalizedIds) {
+      const quest = this.findById(id);
+      if (!quest) {
+        logger.debug("quests:state", "delete-not-found", { id });
+        return { error: "notFound", id };
       }
-      const [quest] = this.quests.splice(index, 1);
-      this.usedIds.delete(quest.id);
-      const cascadeDeletedSteps = this.steps.filter((step) => step.parentId === id);
-      this.history.push({ type: QUEST_ACTIONS.delete, quest, index, cascadeDeletedSteps });
-      this.steps = this.steps.filter((step) => {
-        if (step.parentId === id) {
-          this.usedIds.delete(step.id);
-          return false;
-        }
-        return true;
-      });
-      logger.debug("quests:state", QUEST_ACTIONS.delete, {
-        id,
-        index,
-        total: this.quests.length + this.steps.length,
-      });
-      return quest;
+
+      if ("parentId" in quest) {
+        deletedIds.add(quest.id);
+        continue;
+      }
+
+      const steps = this.getSteps(quest.id);
+      const hasUnselectedIncompleteStep = steps.some(
+        (step) => !step.done && !selectedIds.has(step.id),
+      );
+      if (hasUnselectedIncompleteStep) {
+        logger.debug("quests:state", "delete-blocked-steps", { id: quest.id, ids: normalizedIds });
+        return { error: "blocked", id: quest.id };
+      }
+
+      deletedIds.add(quest.id);
+      for (const step of steps) {
+        deletedIds.add(step.id);
+      }
     }
-    const stepIndex = this.steps.findIndex((step) => step.id === id);
-    if (stepIndex !== -1) {
-      const [quest] = this.steps.splice(stepIndex, 1);
-      this.usedIds.delete(quest.id);
-      this.history.push({ type: QUEST_ACTIONS.delete, quest, index: stepIndex, isStep: true });
-      logger.debug("quests:state", QUEST_ACTIONS.delete, {
-        id,
-        index: stepIndex,
-        total: this.quests.length + this.steps.length,
-      });
-      return quest;
+
+    return { ids: normalizedIds, deletedIds: [...deletedIds] };
+  }
+
+  private applyDeleteBatch(ids: string[], deletedIds: string[]): Quest[] {
+    const deletedIdSet = new Set(deletedIds);
+    const previousQuests = [...this.quests];
+    const previousSteps = [...this.steps];
+    const deletedQuests = this.getAll().filter((quest) => deletedIdSet.has(quest.id));
+
+    this.quests = this.quests.filter((quest) => !deletedIdSet.has(quest.id));
+    this.steps = this.steps.filter((step) => !deletedIdSet.has(step.id));
+    this.usedIds = new Set([...this.quests, ...this.steps].map((quest) => quest.id));
+    this.history.push({
+      type: QUEST_ACTIONS.delete,
+      ids,
+      deletedIds,
+      previousQuests,
+      previousSteps,
+    });
+
+    logger.debug("quests:state", QUEST_ACTIONS.delete, {
+      ids,
+      deletedIds,
+      total: this.quests.length + this.steps.length,
+    });
+
+    return deletedQuests;
+  }
+
+  deleteMany(ids: string[]): DeleteBatchResult {
+    if (!this.inRedo) this.redoStack = [];
+    const result = this.validateDeleteBatch(ids);
+    if ("error" in result) return result;
+
+    return {
+      ids: result.ids,
+      quests: this.applyDeleteBatch(result.ids, result.deletedIds),
+    };
+  }
+
+  delete(id: string): Quest | Step | null | undefined {
+    const result = this.deleteMany([id]);
+    if ("error" in result) {
+      return result.error === "blocked" ? null : undefined;
     }
-    logger.debug("quests:state", "delete-not-found", { id });
-    return undefined;
+
+    return result.quests[0];
   }
 
   clear(all = false): number {
@@ -679,7 +817,7 @@ export class QuestLog {
         return { type: QUEST_ACTIONS.add, quest };
       }
       case QUEST_ACTIONS.toggle:
-        return { type: QUEST_ACTIONS.toggle, id: entry.id };
+        return { type: QUEST_ACTIONS.toggle, ids: entry.ids };
       case QUEST_ACTIONS.update:
         return {
           type: QUEST_ACTIONS.update,
@@ -687,7 +825,7 @@ export class QuestLog {
           description: this.findById(entry.id)?.description ?? entry.previousDescription,
         };
       case QUEST_ACTIONS.delete:
-        return { type: QUEST_ACTIONS.delete, id: entry.quest.id };
+        return { type: QUEST_ACTIONS.delete, ids: entry.ids };
       case QUEST_ACTIONS.clear:
         return { type: QUEST_ACTIONS.clear, all: entry.all };
       case QUEST_ACTIONS.reorder:
@@ -759,19 +897,42 @@ export class QuestLog {
         return { success: true, message: formatQuestList(quests) };
       }
       case QUEST_ACTIONS.toggle: {
-        if (action.id === undefined) {
+        const ids = action.ids?.length ? action.ids : action.id ? [action.id] : undefined;
+        if (!ids || ids.length === 0) {
           return { success: false, message: formatIdRequiredError("toggle") };
         }
 
-        const q = this.toggle(action.id);
-        if (q === undefined) {
-          return { success: false, message: formatNotFound(action.id) };
-        }
-        if (q === null) {
-          return { success: false, message: formatBlockedBySteps(action.id) };
+        const result = this.toggleMany(ids);
+        if ("error" in result) {
+          return {
+            success: false,
+            message:
+              result.error === "blocked"
+                ? formatBlockedBySteps(result.id)
+                : formatNotFound(result.id),
+          };
         }
 
-        return { success: true, message: formatToggleResult(action.id, q.done), quest: q };
+        if (result.quests.length === 1) {
+          const quest = result.quests[0];
+          if (!quest) {
+            return { success: false, message: formatNotFound(result.ids[0]) };
+          }
+
+          return {
+            success: true,
+            message: formatToggleResult(result.ids[0], quest.done),
+            quest,
+          };
+        }
+
+        return {
+          success: true,
+          message: formatBatchToggleResult(
+            result.quests.map((quest, index) => ({ id: result.ids[index], done: quest.done })),
+          ),
+          quests: result.quests,
+        };
       }
       case QUEST_ACTIONS.update: {
         if (action.id === undefined) {
@@ -790,19 +951,38 @@ export class QuestLog {
         return { success: true, message: formatUpdateResult(q), quest: q };
       }
       case QUEST_ACTIONS.delete: {
-        if (action.id === undefined) {
+        const ids = action.ids?.length ? action.ids : action.id ? [action.id] : undefined;
+        if (!ids || ids.length === 0) {
           return { success: false, message: formatIdRequiredError("delete") };
         }
 
-        const q = this.delete(action.id);
-        if (q === undefined) {
-          return { success: false, message: formatNotFound(action.id) };
-        }
-        if (q === null) {
-          return { success: false, message: formatBlockedBySteps(action.id) };
+        const result = this.deleteMany(ids);
+        if ("error" in result) {
+          return {
+            success: false,
+            message:
+              result.error === "blocked"
+                ? formatBlockedBySteps(result.id)
+                : formatNotFound(result.id),
+          };
         }
 
-        return { success: true, message: formatDeleteResult(q), quest: q };
+        if (result.ids.length === 1) {
+          const quest = result.quests[0];
+          if (!quest) {
+            return { success: false, message: formatNotFound(result.ids[0]) };
+          }
+
+          return { success: true, message: formatDeleteResult(quest), quest };
+        }
+
+        return {
+          success: true,
+          message: formatBatchDeleteResult(
+            result.quests.map((quest) => ({ id: quest.id, description: quest.description })),
+          ),
+          quests: result.quests,
+        };
       }
       case QUEST_ACTIONS.clear: {
         const count = this.clear(action.all);
@@ -926,6 +1106,7 @@ export function makeToolResult(
   text: string,
   questLog: QuestLog,
   displayQuests?: Quest[],
+  snapshotQuests?: Quest[],
 ): AgentToolResult<unknown> {
   return {
     content: [{ type: "text", text }],
@@ -933,6 +1114,7 @@ export function makeToolResult(
       quests: questLog.getAll(),
       usedIds: questLog.getUsedIds(),
       displayQuests,
+      snapshotQuests,
     },
   };
 }

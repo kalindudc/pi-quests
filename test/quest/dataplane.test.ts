@@ -32,6 +32,15 @@ describe("QuestLog", () => {
     expect(log.toggle(q.id)?.done).toBe(false);
   });
 
+  it("toggles multiple tasks atomically", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    const result = log.toggleMany([parent.id, "02"]);
+    expect("error" in result).toBe(false);
+    expect(log.getAll().every((quest) => quest.done)).toBe(true);
+  });
+
   it("returns undefined when toggling nonexistent quest", () => {
     const log = new QuestLog();
     expect(log.toggle("ff")).toBeUndefined();
@@ -124,6 +133,23 @@ describe("QuestLog", () => {
     expect(step.done).toBe(false);
   });
 
+  it("undoes and redoes batch toggle as a single action", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    const toggled = log.toggleMany([parent.id, "02"]);
+    expect("error" in toggled).toBe(false);
+    expect(log.getAll().every((quest) => quest.done)).toBe(true);
+
+    const undone = log.undo();
+    expect(undone.success).toBe(true);
+    expect(log.getAll().every((quest) => !quest.done)).toBe(true);
+
+    const redone = log.redo();
+    expect(redone.success).toBe(true);
+    expect(log.getAll().every((quest) => quest.done)).toBe(true);
+  });
+
   it("undoes clear", () => {
     const log = new QuestLog();
     log.add("A");
@@ -166,6 +192,25 @@ describe("QuestLog", () => {
     expect(log.getAll()).toHaveLength(1);
   });
 
+  it("deletes multiple tasks atomically when incomplete child steps are explicitly selected", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    log.add("Another");
+    const result = log.deleteMany([parent.id, "02", "03"]);
+    expect("error" in result).toBe(false);
+    expect(log.getAll()).toHaveLength(0);
+  });
+
+  it("does not let duplicate ids bypass the incomplete-step delete guard", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    const result = log.deleteMany([parent.id, parent.id]);
+    expect(result).toEqual({ error: "blocked", id: parent.id });
+    expect(log.getAll()).toHaveLength(2);
+  });
+
   it("returns undefined when deleting nonexistent quest", () => {
     const log = new QuestLog();
     expect(log.delete("ff")).toBeUndefined();
@@ -179,6 +224,24 @@ describe("QuestLog", () => {
     const result = log.undo();
     expect(result.success).toBe(true);
     expect(log.getAll()).toHaveLength(2);
+  });
+
+  it("undoes and redoes batch delete as a single action", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    log.add("Another");
+    const deleted = log.deleteMany([parent.id, "02", "03"]);
+    expect("error" in deleted).toBe(false);
+    expect(log.getAll()).toHaveLength(0);
+
+    const undone = log.undo();
+    expect(undone.success).toBe(true);
+    expect(log.getAll()).toHaveLength(3);
+
+    const redone = log.redo();
+    expect(redone.success).toBe(true);
+    expect(log.getAll()).toHaveLength(0);
   });
 
   it("reparent promotes a step to top-level quest", () => {
@@ -503,11 +566,32 @@ describe("QuestLog.execute", () => {
     expect(log.getAll()[0]!.done).toBe(true);
   });
 
+  it("executes batch toggle action", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    const result = log.execute({ type: QUEST_ACTIONS.toggle, ids: ["01", "02"] });
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Toggled 2 tasks");
+    expect(result.quests).toHaveLength(2);
+    expect(log.getAll().every((quest) => quest.done)).toBe(true);
+  });
+
   it("returns error for toggle without id", () => {
     const log = new QuestLog();
     const result = log.execute({ type: QUEST_ACTIONS.toggle });
     expect(result.success).toBe(false);
     expect(result.message).toContain("id is required");
+  });
+
+  it("blocks batch toggle when the final parent state would still have incomplete steps", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    const result = log.execute({ type: QUEST_ACTIONS.toggle, ids: [parent.id] });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("incomplete steps");
+    expect(log.getAll().every((quest) => !quest.done)).toBe(true);
   });
 
   it("returns not found for toggle of missing quest", () => {
@@ -555,6 +639,18 @@ describe("QuestLog.execute", () => {
     const result = log.execute({ type: QUEST_ACTIONS.delete, id: "01" });
     expect(result.success).toBe(true);
     expect(result.message).toContain("Deleted quest [01]");
+    expect(log.getAll()).toHaveLength(0);
+  });
+
+  it("executes batch delete action", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    log.add("Another");
+    const result = log.execute({ type: QUEST_ACTIONS.delete, ids: ["01", "02", "03"] });
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Deleted 3 tasks");
+    expect(result.quests).toHaveLength(3);
     expect(log.getAll()).toHaveLength(0);
   });
 
@@ -926,5 +1022,27 @@ describe("Step", () => {
     expect(result.success).toBe(false);
     expect(result.message).toContain("incomplete steps");
     expect(log.getAll()).toHaveLength(2);
+  });
+
+  it("execute batch delete requires selecting incomplete child steps explicitly", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    log.add("Another");
+    const result = log.execute({ type: QUEST_ACTIONS.delete, ids: [parent.id, "03"] });
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("incomplete steps");
+    expect(log.getAll()).toHaveLength(3);
+  });
+
+  it("execute batch delete allows deleting a parent when its incomplete child steps are selected", () => {
+    const log = new QuestLog();
+    const parent = log.add("Parent");
+    log.addStep("Sub", parent.id);
+    log.add("Another");
+    const result = log.execute({ type: QUEST_ACTIONS.delete, ids: [parent.id, "02", "03"] });
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Deleted 3 tasks");
+    expect(log.getAll()).toHaveLength(0);
   });
 });

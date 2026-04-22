@@ -44,12 +44,22 @@ export function formatToggleResult(id: string, done: boolean): string {
   return `Quest [${id}] ${done ? "done" : "undone"}`;
 }
 
+export function formatBatchToggleResult(toggled: { id: string; done: boolean }[]): string {
+  return `Toggled ${toggled.length} tasks:\n${toggled
+    .map((quest) => `[${quest.id}] ${quest.done ? "done" : "undone"}`)
+    .join("\n")}`;
+}
+
 export function formatUpdateResult(q: { id: string; description: string }): string {
   return `Updated quest [${q.id}]: ${q.description}`;
 }
 
 export function formatDeleteResult(q: { id: string; description: string }): string {
   return `Deleted quest [${q.id}]: ${q.description}`;
+}
+
+export function formatBatchDeleteResult(deleted: { id: string; description: string }[]): string {
+  return `Deleted ${deleted.length} tasks:\n${deleted.map((quest) => `[${quest.id}] ${quest.description}`).join("\n")}`;
 }
 
 export function formatNotFound(id: string): string {

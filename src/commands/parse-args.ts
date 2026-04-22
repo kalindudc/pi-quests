@@ -5,9 +5,9 @@ export type ParsedArgs =
   | { action: typeof QUEST_ACTIONS.add; descriptions: string[] }
   | { action: typeof QUEST_ACTIONS.split; id: string; descriptions: string[] }
   | { action: typeof QUEST_ACTIONS.list }
-  | { action: typeof QUEST_ACTIONS.toggle; id: string }
+  | { action: typeof QUEST_ACTIONS.toggle; ids: string[] }
   | { action: typeof QUEST_ACTIONS.update; id: string; description: string }
-  | { action: typeof QUEST_ACTIONS.delete; id: string }
+  | { action: typeof QUEST_ACTIONS.delete; ids: string[] }
   | { action: typeof QUEST_ACTIONS.clear; all?: boolean }
   | { action: typeof QUEST_ACTIONS.reorder; id: string; targetId: string }
   | { action: typeof QUEST_ACTIONS.undo }
@@ -47,8 +47,8 @@ export function parseQuestArgs(args: string, idLength = 2): ParsedArgs {
   // Quest actions with arguments
   if (command === QUEST_ACTIONS.add) return parseAddArgs(rest);
   if (command === "add-step") return parseAddStepArgs(rest, idLength);
-  if (command === QUEST_ACTIONS.toggle) return parseIdAction(QUEST_ACTIONS.toggle, rest, idLength);
-  if (command === QUEST_ACTIONS.delete) return parseIdAction(QUEST_ACTIONS.delete, rest, idLength);
+  if (command === QUEST_ACTIONS.toggle) return parseToggleArgs(rest, idLength);
+  if (command === QUEST_ACTIONS.delete) return parseDeleteArgs(rest, idLength);
   if (command === QUEST_ACTIONS.update) return parseUpdateArgs(rest, idLength);
   if (command === QUEST_ACTIONS.reorder) return parseReorderArgs(rest, idLength);
   if (command === QUEST_ACTIONS.reparent) return parseReparentArgs(rest, idLength);
@@ -72,16 +72,26 @@ function parseAddStepArgs(tokens: string[], idLength: number): ParsedArgs {
   return { action: QUEST_ACTIONS.split, id, descriptions: [description] };
 }
 
-function parseIdAction(
-  action: typeof QUEST_ACTIONS.toggle | typeof QUEST_ACTIONS.delete,
-  tokens: string[],
-  idLength: number,
-): ParsedArgs {
-  const id = tokens[0] ? tokens[0].toLowerCase() : "";
+function parseToggleArgs(tokens: string[], idLength: number): ParsedArgs {
   const pattern = new RegExp(`^[0-9a-f]{${idLength}}$`);
-  if (!pattern.test(id)) return { error: `Usage: /quests ${action} <id>` };
+  const ids = tokens.map((token) => token.toLowerCase());
 
-  return { action, id };
+  if (ids.length === 0 || ids.some((id) => !pattern.test(id))) {
+    return { error: "Usage: /quests toggle <id> [moreIds...]" };
+  }
+
+  return { action: QUEST_ACTIONS.toggle, ids };
+}
+
+function parseDeleteArgs(tokens: string[], idLength: number): ParsedArgs {
+  const pattern = new RegExp(`^[0-9a-f]{${idLength}}$`);
+  const ids = tokens.map((token) => token.toLowerCase());
+
+  if (ids.length === 0 || ids.some((id) => !pattern.test(id))) {
+    return { error: "Usage: /quests delete <id> [moreIds...]" };
+  }
+
+  return { action: QUEST_ACTIONS.delete, ids };
 }
 
 function parseUpdateArgs(tokens: string[], idLength: number): ParsedArgs {

@@ -45,16 +45,27 @@ describe("parseQuestArgs", () => {
     });
   });
 
-  it("parses toggle with id", () => {
-    expect(parseQuestArgs("toggle 03")).toEqual({ action: QUEST_ACTIONS.toggle, id: "03" });
+  it("parses toggle with one id", () => {
+    expect(parseQuestArgs("toggle 03")).toEqual({ action: QUEST_ACTIONS.toggle, ids: ["03"] });
+  });
+
+  it("parses toggle with multiple ids", () => {
+    expect(parseQuestArgs("toggle 03 0a 0f")).toEqual({
+      action: QUEST_ACTIONS.toggle,
+      ids: ["03", "0a", "0f"],
+    });
   });
 
   it("returns error for toggle without id", () => {
-    expect(parseQuestArgs("toggle")).toEqual({ error: "Usage: /quests toggle <id>" });
+    expect(parseQuestArgs("toggle")).toEqual({
+      error: "Usage: /quests toggle <id> [moreIds...]",
+    });
   });
 
   it("returns error for toggle with invalid id", () => {
-    expect(parseQuestArgs("toggle abc")).toEqual({ error: "Usage: /quests toggle <id>" });
+    expect(parseQuestArgs("toggle abc")).toEqual({
+      error: "Usage: /quests toggle <id> [moreIds...]",
+    });
   });
 
   it("parses undo", () => {
@@ -85,12 +96,19 @@ describe("parseQuestArgs", () => {
     });
   });
 
-  it("parses delete with id", () => {
-    expect(parseQuestArgs("delete 03")).toEqual({ action: QUEST_ACTIONS.delete, id: "03" });
+  it("parses delete with one id", () => {
+    expect(parseQuestArgs("delete 03")).toEqual({ action: QUEST_ACTIONS.delete, ids: ["03"] });
+  });
+
+  it("parses delete with multiple ids", () => {
+    expect(parseQuestArgs("delete 03 0a")).toEqual({
+      action: QUEST_ACTIONS.delete,
+      ids: ["03", "0a"],
+    });
   });
 
   it("returns error for delete without id", () => {
-    expect(parseQuestArgs("delete")).toEqual({ error: "Usage: /quests delete <id>" });
+    expect(parseQuestArgs("delete")).toEqual({ error: "Usage: /quests delete <id> [moreIds...]" });
   });
 
   it("returns error for unknown subcommand", () => {

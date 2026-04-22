@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   formatAddResult,
   formatBatchAddResult,
+  formatBatchDeleteResult,
+  formatBatchToggleResult,
   formatBlockedBySteps,
   formatDeleteResult,
   formatDescriptionRequiredError,
@@ -66,6 +68,17 @@ describe("formatToggleResult", () => {
   });
 });
 
+describe("formatBatchToggleResult", () => {
+  it("formats correctly", () => {
+    expect(
+      formatBatchToggleResult([
+        { id: "01", done: true },
+        { id: "02", done: false },
+      ]),
+    ).toBe("Toggled 2 tasks:\n[01] done\n[02] undone");
+  });
+});
+
 describe("formatUpdateResult", () => {
   it("formats correctly", () => {
     expect(formatUpdateResult({ id: "01", description: "New" })).toBe("Updated quest [01]: New");
@@ -75,6 +88,17 @@ describe("formatUpdateResult", () => {
 describe("formatDeleteResult", () => {
   it("formats correctly", () => {
     expect(formatDeleteResult({ id: "01", description: "Old" })).toBe("Deleted quest [01]: Old");
+  });
+});
+
+describe("formatBatchDeleteResult", () => {
+  it("formats correctly", () => {
+    expect(
+      formatBatchDeleteResult([
+        { id: "01", description: "Parent" },
+        { id: "02", description: "Sub" },
+      ]),
+    ).toBe("Deleted 2 tasks:\n[01] Parent\n[02] Sub");
   });
 });
 

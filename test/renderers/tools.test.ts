@@ -57,6 +57,22 @@ describe("renderQuestCall", () => {
     expect(getText(result)).toContain("[03]");
   });
 
+  it("renders batch toggle action with count", () => {
+    const result = renderQuestCall(
+      { action: QUEST_ACTIONS.toggle, ids: ["03", "04"] },
+      mockTheme,
+      {},
+    );
+    expect(getText(result)).toContain("quest toggle");
+    expect(getText(result)).toContain("[2 tasks]");
+  });
+
+  it("renders single toggle action from ids", () => {
+    const result = renderQuestCall({ action: QUEST_ACTIONS.toggle, ids: ["03"] }, mockTheme, {});
+    expect(getText(result)).toContain("quest toggle");
+    expect(getText(result)).toContain("[03]");
+  });
+
   it("renders undo action", () => {
     const result = renderQuestCall({ action: QUEST_ACTIONS.undo }, mockTheme, {});
     expect(getText(result)).toContain("quest undo");
@@ -75,6 +91,22 @@ describe("renderQuestCall", () => {
     );
     expect(getText(result)).toContain("quest reorder");
     expect(getText(result)).toContain("01");
+  });
+
+  it("renders batch delete action with count", () => {
+    const result = renderQuestCall(
+      { action: QUEST_ACTIONS.delete, ids: ["03", "04"] },
+      mockTheme,
+      {},
+    );
+    expect(getText(result)).toContain("quest delete");
+    expect(getText(result)).toContain("[2 tasks]");
+  });
+
+  it("renders single delete action from ids", () => {
+    const result = renderQuestCall({ action: QUEST_ACTIONS.delete, ids: ["03"] }, mockTheme, {});
+    expect(getText(result)).toContain("quest delete");
+    expect(getText(result)).toContain("[03]");
   });
 
   it("renders clear action", () => {
@@ -143,6 +175,31 @@ describe("renderQuestResult", () => {
       {},
     );
     expect(getText(result)).toContain("All clear");
+  });
+
+  it("renders delete snapshots even when the live quest list is empty", () => {
+    const result = render(
+      {
+        content: [{ type: "text", text: "Deleted 2 tasks" }],
+        details: {
+          quests: [],
+          displayQuests: [
+            { id: "01", description: "Parent", done: false, createdAt: 1 },
+            { id: "02", description: "Sub", done: false, createdAt: 2, parentId: "01" },
+          ],
+          snapshotQuests: [
+            { id: "01", description: "Parent", done: false, createdAt: 1 },
+            { id: "02", description: "Sub", done: false, createdAt: 2, parentId: "01" },
+          ],
+        },
+      },
+      { expanded: false, isPartial: false },
+      mockTheme,
+      {},
+    );
+    const text = getText(result);
+    expect(text).toContain("Parent");
+    expect(text).toContain("Sub");
   });
 
   it("renders steps indented without positional numbers", () => {

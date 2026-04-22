@@ -42,13 +42,13 @@ const commandActionBuilders: {
     id: p.id,
     descriptions: p.descriptions,
   }),
-  [QUEST_ACTIONS.toggle]: (p) => ({ type: QUEST_ACTIONS.toggle, id: p.id }),
+  [QUEST_ACTIONS.toggle]: (p) => ({ type: QUEST_ACTIONS.toggle, ids: p.ids }),
   [QUEST_ACTIONS.update]: (p) => ({
     type: QUEST_ACTIONS.update,
     id: p.id,
     description: p.description,
   }),
-  [QUEST_ACTIONS.delete]: (p) => ({ type: QUEST_ACTIONS.delete, id: p.id }),
+  [QUEST_ACTIONS.delete]: (p) => ({ type: QUEST_ACTIONS.delete, ids: p.ids }),
   [QUEST_ACTIONS.clear]: (p) => ({ type: QUEST_ACTIONS.clear, all: p.all }),
   [QUEST_ACTIONS.reorder]: (p) => ({
     type: QUEST_ACTIONS.reorder,
@@ -164,8 +164,8 @@ export function createQuestsHandler(
         lines.push("  add <description>           - Add a new top-level quest");
         lines.push("  add-step <id> <description> - Split a quest into a step");
         lines.push("  list               - List all quests");
-        lines.push("  toggle <id>        - Toggle quest completion");
-        lines.push("  delete <id>        - Delete a quest");
+        lines.push("  toggle <id> [moreIds...] - Toggle one or more quests");
+        lines.push("  delete <id> [moreIds...] - Delete one or more quests");
         lines.push("  update <id> <desc> - Update a quest description");
         lines.push("  reparent <id> [parentId] - Reparent a quest/step (omit parentId to promote)");
         lines.push("  reorder <id> <targetId> - Reorder a quest before the target quest");
