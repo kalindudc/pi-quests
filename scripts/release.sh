@@ -71,7 +71,7 @@ UNEXPECTED=""
 while IFS= read -r file; do
   [ -z "$file" ] && continue
   case "$file" in
-    package.json|package-lock.json|CHANGELOG.md|README.md|AGENTS.md|docs/*|scripts/*) ;;
+    package.json|package-lock.json|pnpm-lock.yaml|CHANGELOG.md|README.md|AGENTS.md|docs/*|scripts/*|.pi/prompts/release.md) ;;
     *) UNEXPECTED="${UNEXPECTED}  ${file}"$'\n' ;;
   esac
 done < <(git status --porcelain | awk '{print $2}' | sort)

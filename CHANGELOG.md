@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-26
+
+- feat: add batch toggle and batch delete support for quests (#2) — @pascal-de-ladurantaye
+- feat: add redo action and rename revert to undo
+- chore: migrate from taskfile to npm scripts and update dependencies
+
 ## [0.6.2] - 2026-04-17
 
 - fix: system prompt was too weak
