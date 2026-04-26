@@ -91,7 +91,9 @@ fi
 
 # re-generate package-lock.json to ensure it matches package.json
 npm install
-pnpm install
+if command -v pnpm >/dev/null 2>&1; then
+  pnpm install
+fi
 
 # Show what will be committed
 echo "Changes to be committed:"

@@ -20,18 +20,18 @@ pi-quests is a pi-coding-agent extension that adds a session-scoped quest log wi
 
 ## Development
 
-This project uses **pnpm** as the primary package manager. If pnpm is unavailable, fall back to **npm**.
+This project uses **npm** scripts. If **pnpm** is available, it can be used as a drop-in replacement (e.g. `pnpm run typecheck` instead of `npm run typecheck`).
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm run typecheck` | TypeScript check (`tsc --noEmit`) |
-| `pnpm exec vitest run --reporter=json` | Run unit tests (vitest) |
-| `pnpm run style` | Lint and format check (biome) |
-| `pnpm run style:fix` | Auto-fix biome issues |
+| `npm run typecheck` | TypeScript check (`tsc --noEmit`) |
+| `npx vitest run --reporter=json` | Run unit tests (vitest) |
+| `npm run style` | Lint and format check (biome) |
+| `npm run style:fix` | Auto-fix biome issues |
 
 ## Debugging
 
-Debug logs can be found in `tmp/logs/`. If this directory does not exist run `task up` to bootstrap.
+Debug logs can be found in `tmp/logs/`. If this directory does not exist run `npm run prepare` to bootstrap.
 
 ## Writing tests
 

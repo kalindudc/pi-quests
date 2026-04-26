@@ -847,7 +847,13 @@ export class QuestLog {
    * This is the primary API for all adapter layers (commands, tools).
    */
   execute(action: QuestAction): QuestOperationResult {
-    if (action.type !== QUEST_ACTIONS.undo && action.type !== QUEST_ACTIONS.redo) {
+    if (
+      action.type !== QUEST_ACTIONS.list &&
+      action.type !== QUEST_ACTIONS.rules &&
+      action.type !== QUEST_ACTIONS.skill &&
+      action.type !== QUEST_ACTIONS.undo &&
+      action.type !== QUEST_ACTIONS.redo
+    ) {
       this.redoStack = [];
     }
     switch (action.type) {

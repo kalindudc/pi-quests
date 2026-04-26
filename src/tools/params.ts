@@ -1,5 +1,5 @@
 import { StringEnum } from "@mariozechner/pi-ai";
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 import { QUEST_ACTION_VALUES } from "../quest/types.js";
 
 export function createQuestParams(idLength: number) {

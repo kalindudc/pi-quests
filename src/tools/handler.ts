@@ -1,5 +1,5 @@
 import type { AgentToolResult, ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { type Static, Type } from "@sinclair/typebox";
+import { type Static, Type } from "typebox";
 import type { ResolvedConfig } from "../config.js";
 import { logger } from "../logger.js";
 import { QUEST_PROMPT_GATE, QUEST_PROMPT_REMINDER } from "../prompts.js";
